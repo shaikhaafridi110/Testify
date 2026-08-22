@@ -1,0 +1,215 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}
+Users — Testify Admin
+{% endblock %}
+
+{% block content %}
+<div class="dash-main">
+  <header class="dash-header">
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
+      <div class="dash-title">
+        <h1>Users</h1>
+        <p>Manage registered website users.</p>
+      </div>
+    </div>
+    <div class="dash-actions">
+      <!-- <button class="btn btn-primary btn-sm" onclick="openModal('add-user')">+ Add User</button> -->
+      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
+            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg></button>
+        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
+            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dash-content">
+    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Users</span>
+    </div>
+
+    <form class="toolbar" method="get" action="{% url 'admin_user' %}">
+      <div class="search"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg><input type="text" name="q" class="form-control" placeholder="Search users…" value="{{ search }}" />
+      </div>
+      <div class="filter"><select class="form-control select" name="status" aria-label="Filter by status"
+          onchange="this.form.submit()">
+          <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+          <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+          <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Blocked</option>
+        </select></div>
+      <div class="filter"><select class="form-control select" name="role" aria-label="Filter by role"
+          onchange="this.form.submit()">
+          <option value="" {% if not role %}selected{% endif %}>All roles</option>
+          <option value="user" {% if role == 'user' %}selected{% endif %}>User</option>
+          <option value="teacher" {% if role == 'teacher' %}selected{% endif %}>Teacher</option>
+          <option value="admin" {% if role == 'admin' %}selected{% endif %}>Admin</option>
+        </select></div>
+      <button type="submit" style="display:none;" aria-hidden="true"></button>
+    </form>
+
+    <div class="card" style="padding:0;overflow:hidden;" data-reveal>
+      <div class="table-wrap">
+        <table class="data" id="users-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for admin_user in users %}
+            <tr data-search-row data-filter-row data-filter-value="{{ admin_user.status }}"
+              data-search-text="{{ admin_user.name }} {{ admin_user.email }} {{ admin_user.get_role_display }}">
+              <td class="cell-main">{{ admin_user.name }}</td>
+              <td class="cell-sub">{{ admin_user.email }}</td>
+              <td>
+                {% if admin_user.role == 'admin' %}
+                <span class="badge badge-error">{{ admin_user.get_role_display }}</span>
+                {% elif admin_user.role == 'teacher' %}
+                <span class="badge badge-primary">{{ admin_user.get_role_display }}</span>
+                {% else %}
+                <span class="badge">{{ admin_user.get_role_display }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button"
+                  class="badge status-toggle {% if admin_user.status == 'active' %}badge-success{% elif admin_user.status == 'inactive' %}badge-warning{% else %}badge-error{% endif %}"
+                  style="border:none; cursor:pointer;"
+                  title="Click to change status"
+                  onclick="toggleStatus('{{ admin_user.id }}','{{ admin_user.status }}')">
+                  {{ admin_user.get_status_display }}
+                </button>
+              </td>
+              <td>{{ admin_user.created_at|date:"d M Y" }}</td>
+              <td class="row-actions">
+                <a class="icon-btn" aria-label="Edit" href="{% url 'admin_user_edit' admin_user.id %}"><svg width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg></a>
+                <button class="icon-btn danger" aria-label="Delete"
+                  onclick="confirmAction('Delete user {{ admin_user.name|escapejs }}? This cannot be undone.',()=>deleteUser('{{ admin_user.id }}'))"><svg
+                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg></button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" style="text-align:center; padding:2rem;">No users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if users.has_other_pages %}
+    <div class="pagination">
+      <button class="page-btn" {% if not users.has_previous %}disabled{% endif %}
+        {% if users.has_previous %}onclick="window.location.href='?page={{ users.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}&role={{ role }}'"{% endif %}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      {% for num in users.paginator.page_range %}
+      <button class="page-btn {% if users.number == num %}active{% endif %}"
+        onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}&role={{ role }}'">{{ num }}</button>
+      {% endfor %}
+      <button class="page-btn" {% if not users.has_next %}disabled{% endif %}
+        {% if users.has_next %}onclick="window.location.href='?page={{ users.next_page_number }}&q={{ search|urlencode }}&status={{ status }}&role={{ role }}'"{% endif %}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function deleteUser(userId) {
+    fetch(`/admin/users/${userId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('User deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          toast('Could not delete user.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete user.', { title: 'Error', type: 'error' }));
+  }
+
+  // Cycles: active -> inactive -> blocked -> active
+  function nextStatus(current) {
+    if (current === 'active') return 'inactive';
+    if (current === 'inactive') return 'blocked';
+    return 'active';
+  }
+
+  function toggleStatus(userId, currentStatus) {
+    setStatus(userId, nextStatus(currentStatus));
+  }
+
+  function setStatus(userId, newStatus) {
+    fetch(`/admin/users/${userId}/edit/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `status=${encodeURIComponent(newStatus)}`
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.success) {
+          toast(`Status updated to ${data.status_display}.`, { title: 'Updated', type: 'success' });
+          setTimeout(() => window.location.reload(), 600);
+        } else {
+          toast(data.error || 'Could not update status.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not update status.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}
