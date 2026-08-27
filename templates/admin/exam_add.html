@@ -1,0 +1,120 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}
+Add Exam — Testify Admin
+{% endblock %}
+
+{% block content %}
+<div class="dash-main">
+  <header class="dash-header">
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
+      <div class="dash-title">
+        <h1>Add Exam</h1>
+        <p>Create an exam directly (not attached to any teacher's class).</p>
+      </div>
+    </div>
+    <div class="dash-actions">
+      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
+            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg></button>
+        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
+            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dash-content">
+    <div class="crumbs">
+      <a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
+        href="{% url 'admin_exams' %}">Exams</a><span class="sep">/</span><span class="current">Add Exam</span>
+    </div>
+
+    <div class="card card-pad-lg" style="max-width:640px;" data-reveal>
+      <form method="post" action="{% url 'admin_exam_add' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="title">Exam Title<span class="req">*</span></label>
+          <input type="text" id="title" name="title" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="subject">Subject<span class="req">*</span></label>
+          <input type="text" id="subject" name="subject" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="4"></textarea>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="duration_minutes">Duration (minutes)<span class="req">*</span></label>
+            <input type="number" id="duration_minutes" name="duration_minutes" class="form-control" min="1" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="status">Status</label>
+            <select id="status" name="status" class="form-control select">
+              <option value="draft" selected>Draft</option>
+              <option value="published">Published</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="total_marks">Total Marks<span class="req">*</span></label>
+            <input type="number" id="total_marks" name="total_marks" class="form-control" min="1" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="passing_marks">Passing Marks<span class="req">*</span></label>
+            <input type="number" id="passing_marks" name="passing_marks" class="form-control" min="0" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="start_datetime">Start Date/Time</label>
+            <input type="datetime-local" id="start_datetime" name="start_datetime" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="end_datetime">End Date/Time</label>
+            <input type="datetime-local" id="end_datetime" name="end_datetime" class="form-control">
+          </div>
+        </div>
+
+        <div class="flex gap-3" style="margin-top: var(--space-5);">
+          <button type="submit" class="btn btn-primary">Create Exam</button>
+          <a href="{% url 'admin_exams' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted,#6b7280); margin-top:var(--space-3,12px);">
+          After creating this exam you'll go straight to adding its questions (manually, or by importing a CSV or PDF).
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

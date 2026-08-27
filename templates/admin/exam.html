@@ -1,0 +1,284 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}
+Exams — Testify Admin
+{% endblock %}
+
+{% block style %}
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.kpi-card.accent .kpi-icon {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.kpi-card.warning .kpi-icon {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+{% endblock %}
+
+{% block content %}
+<div class="dash-main">
+  <header class="dash-header">
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
+      <div class="dash-title">
+        <h1>Exams</h1>
+        <p>Manage exams created directly by admin (not tied to any teacher's class).</p>
+      </div>
+    </div>
+    <div class="dash-actions">
+      <a class="btn btn-primary btn-sm" href="{% url 'admin_exam_add' %}">+ Add Exam</a>
+      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
+            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg></button>
+        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
+            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dash-content">
+    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Exams</span>
+    </div>
+
+    <div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
+
+      <div class="card kpi-card" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ total_exams }}">0</div>
+        <div class="kpi-lbl">Total Exams</div>
+      </div>
+
+      <div class="card kpi-card" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ draft_exams }}">0</div>
+        <div class="kpi-lbl">Draft</div>
+      </div>
+
+      <div class="card kpi-card accent" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ published_exams }}">0</div>
+        <div class="kpi-lbl">Published</div>
+      </div>
+
+      <div class="card kpi-card warning" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ closed_exams }}">0</div>
+        <div class="kpi-lbl">Closed</div>
+      </div>
+
+    </div>
+
+    <form class="toolbar" method="get" action="{% url 'admin_exams' %}">
+      <div class="search"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg><input type="text" name="q" class="form-control" placeholder="Search exams…" value="{{ search }}" />
+      </div>
+      <div class="filter"><select class="form-control select" name="status" aria-label="Filter by status"
+          onchange="this.form.submit()">
+          <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+          <option value="draft" {% if status == 'draft' %}selected{% endif %}>Draft</option>
+          <option value="published" {% if status == 'published' %}selected{% endif %}>Published</option>
+          <option value="closed" {% if status == 'closed' %}selected{% endif %}>Closed</option>
+        </select></div>
+      <button type="submit" style="display:none;" aria-hidden="true"></button>
+    </form>
+
+    <div class="card" style="padding:0;overflow:hidden;" data-reveal>
+      <div class="table-wrap">
+        <table class="data" id="exams-table">
+          <thead>
+            <tr>
+              <th>Exam</th>
+              <th>Subject</th>
+              <th>Duration</th>
+              <th><strong>T_Marks</strong>/P_Marks</th>
+    
+              <th>Status</th>
+           
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in exams %}
+            <tr>
+              <td class="cell-main">{{ e.title }}</td>
+              <td>{{ e.subject }}</td>
+              <td>{{ e.duration_minutes }} min</td>
+              <td><strong>{{ e.total_marks }}</strong>/{{ e.passing_marks }}</td>
+             
+              <td>
+                <button type="button"
+                  class="badge status-toggle {% if e.status == 'published' %}badge-success{% elif e.status == 'closed' %}badge-warning{% else %}badge-primary{% endif %}"
+                  style="border:none; cursor:pointer;"
+                  title="Click to change status"
+                  onclick="toggleExamStatus('{{ e.status }}','{% url 'admin_exam_edit' e.id %}')">
+                  {{ e.get_status_display }}
+                </button>
+              </td>
+              
+              <td class="row-actions">
+                <a class="icon-btn" aria-label="Manage Questions" title="Manage Questions" href="{% url 'exam_questions' e.id %}"><svg width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg></a>
+                <a class="icon-btn" aria-label="Edit" href="{% url 'admin_exam_edit' e.id %}"><svg width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg></a>
+                <button class="icon-btn danger" aria-label="Delete"
+                  onclick="confirmAction('Delete exam {{ e.title|escapejs }}? This cannot be undone.',()=>deleteExam('{% url 'admin_exam_delete' e.id %}'))"><svg
+                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg></button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" style="text-align:center; padding:2rem;">No admin exams yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if exams.has_other_pages %}
+    <div class="pagination">
+      <button class="page-btn" {% if not exams.has_previous %}disabled{% endif %}
+        {% if exams.has_previous %}onclick="window.location.href='?page={{ exams.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}'"{% endif %}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      {% for num in exams.paginator.page_range %}
+      <button class="page-btn {% if exams.number == num %}active{% endif %}"
+        onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}'">{{ num }}</button>
+      {% endfor %}
+      <button class="page-btn" {% if not exams.has_next %}disabled{% endif %}
+        {% if exams.has_next %}onclick="window.location.href='?page={{ exams.next_page_number }}&q={{ search|urlencode }}&status={{ status }}'"{% endif %}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function deleteExam(deleteUrl) {
+    fetch(deleteUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Exam deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          toast('Could not delete exam.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete exam.', { title: 'Error', type: 'error' }));
+  }
+
+  // Cycles: draft -> published -> closed -> draft
+  function nextExamStatus(current) {
+    if (current === 'draft') return 'published';
+    if (current === 'published') return 'closed';
+    return 'draft';
+  }
+
+  function toggleExamStatus(currentStatus, editUrl) {
+    setExamStatus(editUrl, nextExamStatus(currentStatus));
+  }
+
+  function setExamStatus(editUrl, newStatus) {
+    fetch(editUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `status=${encodeURIComponent(newStatus)}`
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.success) {
+          toast(`Status updated to ${data.status_display}.`, { title: 'Updated', type: 'success' });
+          setTimeout(() => window.location.reload(), 600);
+        } else {
+          toast(data.error || 'Could not update status.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not update status.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}
