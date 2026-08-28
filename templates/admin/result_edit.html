@@ -1,0 +1,145 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}
+Edit Result — {{ attempt.user.name }} — Testify Admin
+{% endblock %}
+
+{% block content %}
+<div class="dash-main">
+  <header class="dash-header">
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
+      <div class="dash-title">
+        <h1>Edit Result</h1>
+        <p>{{ attempt.user.name }} — {{ attempt.exam.title }}</p>
+      </div>
+    </div>
+    <div class="dash-actions">
+      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
+            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg></button>
+        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
+            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dash-content">
+    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span>
+      <a href="{% url 'admin_results' %}">Results</a><span class="sep">/</span>
+      <span class="current">Edit</span>
+    </div>
+
+    <div class="card card-pad-lg" style="max-width:640px;" data-reveal>
+      <form method="post" action="{% url 'admin_result_edit' attempt.id %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label">Student</label>
+          <input type="text" class="form-control" value="{{ attempt.user.name }} ({{ attempt.user.email }})" disabled>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Exam</label>
+          <input type="text" class="form-control" value="{{ attempt.exam.title }}" disabled>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="score">Score<span class="req">*</span></label>
+            <input type="number" id="score" name="score" class="form-control" value="{{ attempt.score }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="percentage">Percentage<span class="req">*</span></label>
+            <input type="number" step="0.01" id="percentage" name="percentage" class="form-control" value="{{ attempt.percentage }}" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="correct_answers">Correct<span class="req">*</span></label>
+            <input type="number" id="correct_answers" name="correct_answers" class="form-control" min="0" value="{{ attempt.correct_answers }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="wrong_answers">Wrong<span class="req">*</span></label>
+            <input type="number" id="wrong_answers" name="wrong_answers" class="form-control" min="0" value="{{ attempt.wrong_answers }}" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="max-width:200px;">
+          <label class="form-label" for="skipped_answers">Skipped<span class="req">*</span></label>
+          <input type="number" id="skipped_answers" name="skipped_answers" class="form-control" min="0" value="{{ attempt.skipped_answers }}" required>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="status">Attempt Status</label>
+            <select id="status" name="status" class="form-control select">
+              <option value="started" {% if attempt.status == 'started' %}selected{% endif %}>Started</option>
+              <option value="submitted" {% if attempt.status == 'submitted' %}selected{% endif %}>Submitted</option>
+              <option value="expired" {% if attempt.status == 'expired' %}selected{% endif %}>Expired</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="result_status">Result</label>
+            <select id="result_status" name="result_status" class="form-control select">
+              <option value="" {% if not attempt.result_status %}selected{% endif %}>— Not set —</option>
+              <option value="pass" {% if attempt.result_status == 'pass' %}selected{% endif %}>Pass</option>
+              <option value="fail" {% if attempt.result_status == 'fail' %}selected{% endif %}>Fail</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
+          <div class="flex gap-3">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{% url 'admin_results'%}" class="btn btn-secondary">Cancel</a>
+          </div>
+          <button type="button" class="btn btn-danger"
+            onclick="confirmAction('Delete this attempt? This cannot be undone.',()=>deleteAttempt())">
+            Delete Result
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function deleteAttempt() {
+    fetch("{% url 'admin_result_delete' attempt.id %}", {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Attempt deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.href = "{% url 'admin_results' %}", 800);
+        } else {
+          toast('Could not delete attempt.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete attempt.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

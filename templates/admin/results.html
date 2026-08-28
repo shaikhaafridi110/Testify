@@ -1,0 +1,561 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}
+Results — Testify Admin
+{% endblock %}
+
+{% block style %}
+/* ---------- KPI cards ---------- */
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.10);
+  color: #2563eb;
+  margin-bottom: var(--space-3, 12px);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), background .35s ease;
+}
+.kpi-card:hover .kpi-icon { transform: translateY(-3px) scale(1.06); }
+
+.kpi-card.accent .kpi-icon { background: rgba(22, 163, 74, 0.10); color: #16a34a; }
+.kpi-card.warning .kpi-icon { background: rgba(220, 38, 38, 0.10); color: #dc2626; }
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease;
+}
+.kpi-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform .7s ease;
+  pointer-events: none;
+}
+.kpi-card:hover { transform: translateY(-4px); box-shadow: 0 14px 34px -14px rgba(15,23,42,.22); }
+.kpi-card:hover::after { transform: translateX(120%); }
+
+.kpi-num { font-variant-numeric: tabular-nums; }
+
+/* ---------- result badge ---------- */
+.badge {
+  font-weight: 600;
+  letter-spacing: .02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.badge::before {
+  content: "";
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  opacity: .7;
+}
+.badge-success { background: rgba(22,163,74,.12); color: #16a34a; }
+.badge-error   { background: rgba(220,38,38,.12); color: #dc2626; }
+.badge-neutral { background: rgba(100,116,139,.12); color: #64748b; }
+
+/* status pill (started / submitted / expired) */
+.status-pill {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 6px;
+  text-transform: capitalize;
+}
+.status-pill.started   { background: rgba(37,99,235,.10); color: #2563eb; }
+.status-pill.submitted { background: rgba(22,163,74,.10); color: #16a34a; }
+.status-pill.expired   { background: rgba(245,158,11,.10); color: #d97706; }
+
+/* ---------- table row reveal ---------- */
+#results-table tbody tr {
+  animation: rowIn .45s cubic-bezier(.2,.8,.2,1) both;
+}
+#results-table tbody tr:nth-child(1){ animation-delay:.02s }
+#results-table tbody tr:nth-child(2){ animation-delay:.06s }
+#results-table tbody tr:nth-child(3){ animation-delay:.10s }
+#results-table tbody tr:nth-child(4){ animation-delay:.14s }
+#results-table tbody tr:nth-child(5){ animation-delay:.18s }
+#results-table tbody tr:nth-child(6){ animation-delay:.22s }
+#results-table tbody tr:nth-child(7){ animation-delay:.26s }
+#results-table tbody tr:nth-child(8){ animation-delay:.30s }
+#results-table tbody tr:nth-child(9){ animation-delay:.34s }
+#results-table tbody tr:nth-child(10){ animation-delay:.38s }
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#results-table tbody tr {
+  transition: background .2s ease;
+}
+#results-table tbody tr:hover { background: rgba(37,99,235,.04); }
+
+/* score bar inside cell */
+.score-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148,163,184,.18);
+  overflow: hidden;
+  margin-top: 6px;
+  width: 120px;
+}
+.score-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #16a34a);
+  transform-origin: left;
+  animation: growBar .9s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes growBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---------- detail modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.55);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4, 16px);
+  animation: fadeIn .25s ease;
+}
+.modal-overlay.open { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--bg, #fff);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 86vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px -20px rgba(15,23,42,.45);
+  animation: modalIn .35s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg, #fff);
+  padding: var(--space-5, 20px) var(--space-5, 20px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--border, rgba(148,163,184,.2));
+  z-index: 2;
+}
+.modal-body { padding: var(--space-5, 20px); }
+
+.detail-stat {
+  background: rgba(37,99,235,.05);
+  border: 1px solid rgba(37,99,235,.12);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.detail-stat .num { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.detail-stat .lbl { font-size: .72rem; color: var(--muted, #64748b); margin-top: 2px; }
+
+.q-row {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border, rgba(148,163,184,.14));
+}
+.q-row:last-child { border-bottom: none; }
+.q-badge {
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: .8rem;
+}
+.q-badge.ok { background: rgba(22,163,74,.12); color: #16a34a; }
+.q-badge.no { background: rgba(220,38,38,.12); color: #dc2626; }
+.q-badge.skip { background: rgba(100,116,139,.12); color: #64748b; }
+
+.q-options { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.q-opt {
+  font-size: .78rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(148,163,184,.2));
+}
+.q-opt.selected-correct { background: rgba(22,163,74,.12); border-color: #16a34a; color: #16a34a; }
+.q-opt.selected-wrong   { background: rgba(220,38,38,.10); border-color: #dc2626; color: #dc2626; }
+.q-opt.correct-answer   { background: rgba(22,163,74,.08); border-color: rgba(22,163,74,.4); color: #16a34a; }
+
+/* skeleton while loading modal */
+.skel {
+  background: linear-gradient(90deg, rgba(148,163,184,.12), rgba(148,163,184,.22), rgba(148,163,184,.12));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.skel-line { height: 14px; margin-bottom: 10px; }
+.skel-line.short { width: 60%; }
+{% endblock %}
+
+{% block content %}
+<div class="dash-main">
+  <header class="dash-header">
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
+      <div class="dash-title">
+        <h1>Results</h1>
+        <p>Every user's exam attempts — open a breakdown or remove an attempt.</p>
+      </div>
+    </div>
+    <div class="dash-actions">
+      <!-- Attempts are created only when a user takes an exam, so there's no "+ Add" here on purpose. -->
+      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
+            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg></button>
+        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
+            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dash-content">
+    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Results</span>
+    </div>
+
+    <div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
+      <div class="card kpi-card" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"></path>
+            <path d="M18 17V9M13 17V5M8 17v-3"></path>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ total_attempts }}">0</div>
+        <div class="kpi-lbl">Total Attempts</div>
+      </div>
+
+      <div class="card kpi-card" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ submitted_attempts }}">0</div>
+        <div class="kpi-lbl">Submitted</div>
+      </div>
+
+      <div class="card kpi-card accent" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ passed_attempts }}">0</div>
+        <div class="kpi-lbl">Passed</div>
+      </div>
+
+      <div class="card kpi-card warning" data-reveal>
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </div>
+        <div class="kpi-num" data-count="{{ failed_attempts }}">0</div>
+        <div class="kpi-lbl">Failed</div>
+      </div>
+    </div>
+
+    <form class="toolbar" method="get" action="{% url 'admin_results' %}">
+      <div class="search"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg><input type="text" name="q" class="form-control" placeholder="Search by student or exam…" value="{{ search }}" />
+      </div>
+      <div class="filter"><select class="form-control select" name="status" aria-label="Filter by attempt status"
+          onchange="this.form.submit()">
+          <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+          <option value="started" {% if status == 'started' %}selected{% endif %}>Started</option>
+          <option value="submitted" {% if status == 'submitted' %}selected{% endif %}>Submitted</option>
+          <option value="expired" {% if status == 'expired' %}selected{% endif %}>Expired</option>
+        </select></div>
+      <div class="filter"><select class="form-control select" name="result" aria-label="Filter by result"
+          onchange="this.form.submit()">
+          <option value="" {% if not result_status %}selected{% endif %}>All results</option>
+          <option value="pass" {% if result_status == 'pass' %}selected{% endif %}>Pass</option>
+          <option value="fail" {% if result_status == 'fail' %}selected{% endif %}>Fail</option>
+        </select></div>
+      <button type="submit" style="display:none;" aria-hidden="true"></button>
+    </form>
+
+    <div class="card" style="padding:0;overflow:hidden;" data-reveal>
+      <div class="table-wrap">
+        <table class="data" id="results-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Exam</th>
+              <th>Score</th>
+              <th>Correct / Wrong / Skipped</th>
+              <th>Status</th>
+              <th>Result</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for attempt in attempts %}
+            <tr>
+              <td class="cell-main">
+                {{ attempt.user.name }}
+                <div class="cell-sub">{{ attempt.user.email }}</div>
+              </td>
+              <td>{{ attempt.exam.title }}</td>
+              <td>
+                {{ attempt.score }} / {{ attempt.exam.total_marks }}
+                <div class="cell-sub">{{ attempt.percentage }}%</div>
+                <div class="score-bar"><span style="width: {% if attempt.exam.total_marks %}{{ attempt.percentage|floatformat:0 }}{% else %}0{% endif %}%"></span></div>
+              </td>
+              <td>{{ attempt.correct_answers }} / {{ attempt.wrong_answers }} / {{ attempt.skipped_answers }}</td>
+              <td>
+                <span class="status-pill {{ attempt.status }}">{{ attempt.status }}</span>
+              </td>
+              <td>
+                {% if attempt.result_status == 'pass' %}
+                <span class="badge badge-success">Pass</span>
+                {% elif attempt.result_status == 'fail' %}
+                <span class="badge badge-error">Fail</span>
+                {% else %}
+                <span class="badge badge-neutral">—</span>
+                {% endif %}
+              </td>
+              <td class="row-actions">
+                <button class="icon-btn" aria-label="View details" onclick="openDetail({{ attempt.id }})">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                <button class="icon-btn danger" aria-label="Delete"
+                  onclick="confirmAction('Delete this attempt by {{ attempt.user.name|escapejs }}? This cannot be undone.',()=>deleteAttempt('{{ attempt.id }}'))"><svg
+                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg></button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" style="text-align:center; padding:2rem;">No exam attempts found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if attempts.has_other_pages %}
+    <div class="pagination">
+      <button class="page-btn" {% if not attempts.has_previous %}disabled{% endif %}
+        {% if attempts.has_previous %}onclick="window.location.href='?page={{ attempts.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}'"{% endif %}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      {% for num in attempts.paginator.page_range %}
+      <button class="page-btn {% if attempts.number == num %}active{% endif %}"
+        onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}'">{{ num }}</button>
+      {% endfor %}
+      <button class="page-btn" {% if not attempts.has_next %}disabled{% endif %}
+        {% if attempts.has_next %}onclick="window.location.href='?page={{ attempts.next_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}'"{% endif %}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ---------- Detail modal ---------- -->
+<div class="modal-overlay" id="detail-modal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <h2 id="detail-title" style="margin:0;font-size:1.25rem;">Attempt detail</h2>
+          <p id="detail-sub" style="margin:4px 0 0;color:var(--muted,#64748b);font-size:.85rem;">Loading…</p>
+        </div>
+        <button class="icon-btn" aria-label="Close" onclick="closeDetail()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" id="detail-body">
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line short"></div>
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line short"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const detailModal = document.getElementById('detail-modal');
+  const detailBody  = document.getElementById('detail-body');
+  const detailSub   = document.getElementById('detail-sub');
+
+  function openDetail(attemptId) {
+    detailModal.classList.add('open');
+    detailSub.textContent = 'Loading…';
+    detailBody.innerHTML =
+      '<div class="skel skel-line"></div><div class="skel skel-line short"></div>' +
+      '<div class="skel skel-line"></div><div class="skel skel-line short"></div>';
+
+    fetch(`/admin/results/${attemptId}/`, {
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(r => r.json())
+      .then(data => renderDetail(data.attempt))
+      .catch(() => {
+        detailSub.textContent = '';
+        detailBody.innerHTML = '<p style="color:#dc2626;">Could not load this attempt.</p>';
+      });
+  }
+
+  function closeDetail() {
+    detailModal.classList.remove('open');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDetail();
+  });
+
+  function renderDetail(a) {
+    detailSub.textContent = `${a.user_name} — ${a.exam_title}`;
+
+    const passBadge = a.result_status === 'pass'
+      ? '<span class="badge badge-success">Pass</span>'
+      : a.result_status === 'fail'
+        ? '<span class="badge badge-error">Fail</span>'
+        : '<span class="badge badge-neutral">—</span>';
+
+    const stats = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:var(--space-5);">
+        <div class="detail-stat"><div class="num">${a.score}/${a.exam_total_marks}</div><div class="lbl">Score</div></div>
+        <div class="detail-stat"><div class="num">${a.percentage}%</div><div class="lbl">Percentage</div></div>
+        <div class="detail-stat"><div class="num">${a.correct_answers}</div><div class="lbl">Correct</div></div>
+        <div class="detail-stat"><div class="num">${a.wrong_answers}</div><div class="lbl">Wrong</div></div>
+      </div>`;
+
+    let rows = '';
+    if (!a.answers || !a.answers.length) {
+      rows = '<p style="color:var(--muted,#64748b);">No recorded answers for this attempt.</p>';
+    } else {
+      a.answers.forEach((ans, i) => {
+        const cls = ans.is_correct ? 'ok' : (ans.selected_option === null ? 'skip' : 'no');
+        const glyph = ans.is_correct ? '✓' : (ans.selected_option === null ? '—' : '✕');
+
+        let opts = '';
+        if (ans.selected_option && ans.is_correct) {
+          opts = `<span class="q-opt selected-correct">${ans.selected_option}</span>`;
+        } else if (ans.selected_option && !ans.is_correct) {
+          opts = `<span class="q-opt selected-wrong">${ans.selected_option}</span>`;
+          if (ans.correct_option) {
+            opts += `<span class="q-opt correct-answer">Correct: ${ans.correct_option}</span>`;
+          }
+        } else if (ans.correct_option) {
+          opts = `<span class="q-opt correct-answer">Correct: ${ans.correct_option}</span>`;
+        }
+
+        rows += `
+          <div class="q-row">
+            <div class="q-badge ${cls}">${glyph}</div>
+            <div style="flex:1;">
+              <div style="font-weight:600;">Q${ans.question_order ?? i + 1}. ${escapeHtml(ans.question_text)}</div>
+              <div style="font-size:.72rem;color:var(--muted,#64748b);margin-top:2px;">${ans.marks} mark${ans.marks === 1 ? '' : 's'}</div>
+              <div class="q-options">${opts}</div>
+            </div>
+          </div>`;
+      });
+    }
+
+    detailBody.innerHTML = `
+      ${stats}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-4);">
+        <span class="status-pill ${a.status}">${a.status}</span>
+        ${passBadge}
+        <span style="margin-left:auto;font-size:.78rem;color:var(--muted,#64748b);">
+          ${a.submitted_at ? 'Submitted ' + new Date(a.submitted_at).toLocaleString() : 'Started ' + new Date(a.started_at).toLocaleString()}
+        </span>
+      </div>
+      <h3 style="font-size:.95rem;margin:0 0 var(--space-3);">Answer breakdown</h3>
+      <div>${rows}</div>`;
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])
+    );
+  }
+
+  function deleteAttempt(attemptId) {
+    fetch(`/admin/results/${attemptId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Attempt deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          toast('Could not delete attempt.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete attempt.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

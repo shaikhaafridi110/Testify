@@ -5,7 +5,7 @@ from django.db.models import Q, Count
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
 
-from .models import User, TeacherInfo, Class, Exam, Question, QuestionOption
+from .models import User, TeacherInfo, Class, Exam, Question, QuestionOption ,UserExamAttempt,UserExamAnswer
 import uuid
 import os
 import csv
@@ -1203,5 +1203,120 @@ def question_delete(request, exam_id, question_id):
     exam = get_object_or_404(Exam, id=exam_id)
     question = get_object_or_404(Question, id=question_id, exam=exam)
     question.delete()
+
+    return JsonResponse({'success': True})
+
+
+def admin_results(request):
+    attempts_qs = UserExamAttempt.objects.select_related('user', 'exam').order_by('-created_at')
+
+    # ==============================
+    # DASHBOARD COUNTS
+    # ==============================
+
+    total_attempts = UserExamAttempt.objects.count()
+    submitted_attempts = UserExamAttempt.objects.filter(status='submitted').count()
+    passed_attempts = UserExamAttempt.objects.filter(result_status='pass').count()
+    failed_attempts = UserExamAttempt.objects.filter(result_status='fail').count()
+
+    # ---- search (student name/email or exam title) ----
+    search = request.GET.get('q', '').strip()
+    if search:
+        attempts_qs = attempts_qs.filter(
+            Q(user__name__icontains=search) |
+            Q(user__email__icontains=search) |
+            Q(exam__title__icontains=search)
+        )
+
+    # ---- filter by attempt status ----
+    status = request.GET.get('status', '').strip()
+    if status:
+        attempts_qs = attempts_qs.filter(status=status)
+
+    # ---- filter by pass/fail ----
+    result_status = request.GET.get('result', '').strip()
+    if result_status:
+        attempts_qs = attempts_qs.filter(result_status=result_status)
+
+    # ---- pagination ----
+    paginator = Paginator(attempts_qs, 10)
+    page_number = request.GET.get('page', 1)
+    attempts = paginator.get_page(page_number)
+
+    context = {
+        'attempts': attempts,
+        'search': search,
+        'status': status,
+        'result_status': result_status,
+
+        'total_attempts': total_attempts,
+        'submitted_attempts': submitted_attempts,
+        'passed_attempts': passed_attempts,
+        'failed_attempts': failed_attempts,
+    }
+    return render(request, 'admin/results.html', context)
+
+
+def admin_result_view(request, attempt_id):
+    """Read-only breakdown of one attempt: every question, the student's
+    selected option, and the correct option. Returns JSON so the results
+    page can render it in a modal without a full page reload."""
+    attempt = get_object_or_404(
+        UserExamAttempt.objects.select_related('user', 'exam'),
+        id=attempt_id
+    )
+
+    answers = (
+        UserExamAnswer.objects
+        .filter(attempt=attempt)
+        .select_related('selected_option', 'question')
+        .prefetch_related('question__options')
+        .order_by('question__question_order')
+    )
+
+    answer_rows = []
+    for ans in answers:
+        correct_option = None
+        for opt in ans.question.options.all():
+            if opt.is_correct:
+                correct_option = opt.option_key
+                break
+
+        answer_rows.append({
+            'question_text': ans.question.question_text,
+            'question_order': ans.question.question_order,
+            'marks': ans.question.marks,
+            'selected_option': ans.selected_option.option_key if ans.selected_option else None,
+            'correct_option': correct_option,
+            'is_correct': ans.is_correct,
+        })
+
+    payload = {
+        'id': attempt.id,
+        'user_name': attempt.user.name,
+        'user_email': attempt.user.email,
+        'exam_title': attempt.exam.title,
+        'exam_total_marks': attempt.exam.total_marks,
+        'score': attempt.score,
+        'percentage': str(attempt.percentage),
+        'correct_answers': attempt.correct_answers,
+        'wrong_answers': attempt.wrong_answers,
+        'skipped_answers': attempt.skipped_answers,
+        'status': attempt.status,
+        'result_status': attempt.result_status,
+        'started_at': attempt.started_at.isoformat() if attempt.started_at else None,
+        'submitted_at': attempt.submitted_at.isoformat() if attempt.submitted_at else None,
+        'answers': answer_rows,
+    }
+
+    return JsonResponse({'success': True, 'attempt': payload})
+
+
+def admin_result_delete(request, attempt_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+    attempt = get_object_or_404(UserExamAttempt, id=attempt_id)
+    attempt.delete()
 
     return JsonResponse({'success': True})

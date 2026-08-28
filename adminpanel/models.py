@@ -567,32 +567,33 @@ class UserExamAttempt(models.Model):
     )
 
     score = models.IntegerField(
-        default=0
+       null=True, blank=True
     )
 
     correct_answers = models.IntegerField(
-        default=0
+       null=True, blank=True
     )
 
     wrong_answers = models.IntegerField(
-        default=0
+      null=True, blank=True
     )
 
     skipped_answers = models.IntegerField(
-        default=0
+       null=True, blank=True
     )
 
     percentage = models.DecimalField(
         max_digits=5,
-        decimal_places=2,
-        default=0
+    decimal_places=2,
+    null=True,
+    blank=True
     )
 
     result_status = models.CharField(
-        max_length=10,
-        choices=RESULT_STATUS_CHOICES,
-        null=True,
-        blank=True
+            max_length=10,
+    choices=RESULT_STATUS_CHOICES,
+    null=True,
+    blank=True
     )
 
     created_at = models.DateTimeField(
