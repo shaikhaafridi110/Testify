@@ -657,3 +657,64 @@ class UserExamAnswer(models.Model):
 
     def __str__(self):
         return f"{self.attempt.user.name} - {self.question.question_text}"
+
+
+
+#======================================================================================
+#contact
+#======================================================================================
+
+
+class Contact(models.Model):
+
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('read', 'Read'),
+        ('replied', 'Replied'),
+    ]
+
+    name = models.CharField(max_length=100)
+
+    email = models.EmailField(max_length=150)
+
+    subject = models.CharField(max_length=200)
+
+    message = models.TextField()
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='new'
+    )
+
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contact_replies'
+    )
+
+    admin_reply = models.TextField(
+        null=True,
+        blank=True
+    )
+
+    replied_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        db_table = 'contacts'
+
+    def __str__(self):
+        return f"{self.name} - {self.subject}"

@@ -40,10 +40,8 @@ urlpatterns = [
     path('exam/<int:exam_id>/questions/<int:question_id>/edit/', views.question_edit, name='question_edit'),
     path('exam/<int:exam_id>/questions/<int:question_id>/delete/', views.question_delete, name='question_delete'),
 
-
     # ---------- Admin: Results ----------
      path('results/', views.admin_results, name='admin_results'),
     path('results/<int:attempt_id>/', views.admin_result_view, name='admin_result_view'),
     path('results/<int:attempt_id>/delete/', views.admin_result_delete, name='admin_result_delete'),
-
 ]

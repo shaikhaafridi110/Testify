@@ -211,6 +211,47 @@ Results — Testify Admin
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .skel-line { height: 14px; margin-bottom: 10px; }
 .skel-line.short { width: 60%; }
+
+/* ---------- toolbar fixes ---------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-5, 20px);
+}
+.toolbar .search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.toolbar .search .icon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted, #64748b);
+  pointer-events: none;
+}
+.toolbar .search input {
+  width: 100%;
+  padding-left: 38px;
+}
+.toolbar .filter {
+  flex: 0 1 170px;
+  min-width: 140px;
+}
+.toolbar .filter .select {
+  width: 100%;
+}
+
+/* ---------- merged exam/subject cell ---------- */
+.exam-sub { font-size: .78rem; color: var(--muted, #64748b); margin-top: 2px; }
+
+/* ---------- merged score/result cell ---------- */
+.score-result { display: flex; flex-direction: column; gap: 6px; }
+.score-result .score-top { display: flex; align-items: baseline; gap: 8px; font-weight: 600; }
+.score-result .score-top .pct { font-weight: 500; color: var(--muted, #64748b); font-size: .82rem; }
 {% endblock %}
 
 {% block content %}
@@ -310,6 +351,19 @@ Results — Testify Admin
           <option value="pass" {% if result_status == 'pass' %}selected{% endif %}>Pass</option>
           <option value="fail" {% if result_status == 'fail' %}selected{% endif %}>Fail</option>
         </select></div>
+      <div class="filter"><select class="form-control select" name="subject" aria-label="Filter by subject"
+          onchange="this.form.submit()">
+          <option value="" {% if not subject %}selected{% endif %}>All subjects</option>
+          {% for subj in subjects %}
+          <option value="{{ subj }}" {% if subject == subj %}selected{% endif %}>{{ subj }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="filter"><select class="form-control select" name="sort" aria-label="Sort by score"
+          onchange="this.form.submit()">
+          <option value="" {% if not sort %}selected{% endif %}>Sort: Newest first</option>
+          <option value="score_desc" {% if sort == 'score_desc' %}selected{% endif %}>Score: High to Low</option>
+          <option value="score_asc" {% if sort == 'score_asc' %}selected{% endif %}>Score: Low to High</option>
+        </select></div>
       <button type="submit" style="display:none;" aria-hidden="true"></button>
     </form>
 
@@ -320,10 +374,8 @@ Results — Testify Admin
             <tr>
               <th>Student</th>
               <th>Exam</th>
-              <th>Score</th>
-              <th>Correct / Wrong / Skipped</th>
+              <th>Score &amp; Result</th>
               <th>Status</th>
-              <th>Result</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -334,24 +386,28 @@ Results — Testify Admin
                 {{ attempt.user.name }}
                 <div class="cell-sub">{{ attempt.user.email }}</div>
               </td>
-              <td>{{ attempt.exam.title }}</td>
               <td>
-                {{ attempt.score }} / {{ attempt.exam.total_marks }}
-                <div class="cell-sub">{{ attempt.percentage }}%</div>
-                <div class="score-bar"><span style="width: {% if attempt.exam.total_marks %}{{ attempt.percentage|floatformat:0 }}{% else %}0{% endif %}%"></span></div>
+                {{ attempt.exam.title }}
+                <div class="exam-sub">{{ attempt.exam.subject|default:"—" }}</div>
               </td>
-              <td>{{ attempt.correct_answers }} / {{ attempt.wrong_answers }} / {{ attempt.skipped_answers }}</td>
+              <td>
+                <div class="score-result">
+                  <div class="score-top">
+                    <span>{{ attempt.score }} / {{ attempt.exam.total_marks }}</span>
+                    <span class="pct">{{ attempt.percentage }}%</span>
+                    {% if attempt.result_status == 'pass' %}
+                    <span class="badge badge-success">Pass</span>
+                    {% elif attempt.result_status == 'fail' %}
+                    <span class="badge badge-error">Fail</span>
+                    {% else %}
+                    <span class="badge badge-neutral">—</span>
+                    {% endif %}
+                  </div>
+                  <div class="score-bar"><span style="width: {% if attempt.exam.total_marks %}{{ attempt.percentage|floatformat:0 }}{% else %}0{% endif %}%"></span></div>
+                </div>
+              </td>
               <td>
                 <span class="status-pill {{ attempt.status }}">{{ attempt.status }}</span>
-              </td>
-              <td>
-                {% if attempt.result_status == 'pass' %}
-                <span class="badge badge-success">Pass</span>
-                {% elif attempt.result_status == 'fail' %}
-                <span class="badge badge-error">Fail</span>
-                {% else %}
-                <span class="badge badge-neutral">—</span>
-                {% endif %}
               </td>
               <td class="row-actions">
                 <button class="icon-btn" aria-label="View details" onclick="openDetail({{ attempt.id }})">
@@ -371,7 +427,7 @@ Results — Testify Admin
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" style="text-align:center; padding:2rem;">No exam attempts found.</td>
+              <td colspan="5" style="text-align:center; padding:2rem;">No exam attempts found.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -382,7 +438,7 @@ Results — Testify Admin
     {% if attempts.has_other_pages %}
     <div class="pagination">
       <button class="page-btn" {% if not attempts.has_previous %}disabled{% endif %}
-        {% if attempts.has_previous %}onclick="window.location.href='?page={{ attempts.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}'"{% endif %}>
+        {% if attempts.has_previous %}onclick="window.location.href='?page={{ attempts.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'"{% endif %}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
@@ -390,10 +446,10 @@ Results — Testify Admin
       </button>
       {% for num in attempts.paginator.page_range %}
       <button class="page-btn {% if attempts.number == num %}active{% endif %}"
-        onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}'">{{ num }}</button>
+        onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'">{{ num }}</button>
       {% endfor %}
       <button class="page-btn" {% if not attempts.has_next %}disabled{% endif %}
-        {% if attempts.has_next %}onclick="window.location.href='?page={{ attempts.next_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}'"{% endif %}>
+        {% if attempts.has_next %}onclick="window.location.href='?page={{ attempts.next_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'"{% endif %}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"></polyline>
@@ -462,7 +518,7 @@ Results — Testify Admin
   });
 
   function renderDetail(a) {
-    detailSub.textContent = `${a.user_name} — ${a.exam_title}`;
+    detailSub.textContent = `${a.user_name} — ${a.exam_title}${a.exam_subject ? ' · ' + a.exam_subject : ''}`;
 
     const passBadge = a.result_status === 'pass'
       ? '<span class="badge badge-success">Pass</span>'

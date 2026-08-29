@@ -4,6 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
+from decimal import Decimal, ROUND_HALF_UP
 
 from .models import User, TeacherInfo, Class, Exam, Question, QuestionOption ,UserExamAttempt,UserExamAnswer
 import uuid
@@ -1207,6 +1208,16 @@ def question_delete(request, exam_id, question_id):
     return JsonResponse({'success': True})
 
 
+
+
+
+
+#====================================================
+#resul
+#====================================================
+#====================================================
+#resul
+#====================================================
 def admin_results(request):
     attempts_qs = UserExamAttempt.objects.select_related('user', 'exam').order_by('-created_at')
 
@@ -1238,6 +1249,27 @@ def admin_results(request):
     if result_status:
         attempts_qs = attempts_qs.filter(result_status=result_status)
 
+    # ---- filter by exam subject ----
+    subject = request.GET.get('subject', '').strip()
+    if subject:
+        attempts_qs = attempts_qs.filter(exam__subject=subject)
+
+    # distinct subjects for the filter dropdown (from exams that actually have attempts)
+    subjects = (
+        Exam.objects.filter(user_attempts__isnull=False)
+        .values_list('subject', flat=True)
+        .distinct()
+        .order_by('subject')
+    )
+
+    # ---- sort by score ----
+    sort = request.GET.get('sort', '').strip()
+    if sort == 'score_desc':
+        attempts_qs = attempts_qs.order_by('-score', '-created_at')
+    elif sort == 'score_asc':
+        attempts_qs = attempts_qs.order_by('score', '-created_at')
+    # else: keep default -created_at ordering already applied above
+
     # ---- pagination ----
     paginator = Paginator(attempts_qs, 10)
     page_number = request.GET.get('page', 1)
@@ -1248,6 +1280,9 @@ def admin_results(request):
         'search': search,
         'status': status,
         'result_status': result_status,
+        'subject': subject,
+        'subjects': subjects,
+        'sort': sort,
 
         'total_attempts': total_attempts,
         'submitted_attempts': submitted_attempts,
@@ -1255,7 +1290,6 @@ def admin_results(request):
         'failed_attempts': failed_attempts,
     }
     return render(request, 'admin/results.html', context)
-
 
 def admin_result_view(request, attempt_id):
     """Read-only breakdown of one attempt: every question, the student's
