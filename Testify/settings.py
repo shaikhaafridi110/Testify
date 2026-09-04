@@ -43,8 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'adminpanel',
+    'userpanel',
 ]
 AUTH_USER_MODEL = 'adminpanel.User'
+
+LOGIN_URL = "login" 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -56,6 +59,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+
+
+    'adminpanel.middleware.AdminAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'Testify.urls'

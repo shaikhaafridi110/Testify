@@ -1,0 +1,84 @@
+{% extends 'master.html' %}
+
+{% block title %}Sign in — Testify{% endblock %}
+{% block meta_description %}Sign in to Testify as an admin, teacher, or website user.{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<main class="auth-wrap">
+  <div class="auth-card" data-reveal="scale">
+    <div class="card">
+      <div class="auth-head">
+        <a href="{% url 'index' %}" class="brand" style="justify-content:center;margin-bottom:var(--space-4);"><span class="brand-mark">T</span><span>Testify</span></a>
+        <h1>Welcome back</h1>
+        <p>Sign in to your account to continue.</p>
+      </div>
+
+      {% if messages %}
+        <div class="form-messages" style="margin-bottom:var(--space-4);">
+          {% for message in messages %}
+            {% if message.tags == 'success' %}
+              <div class="alert alert-success" role="status" style="display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius,10px);background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.25);color:#16a34a;font-size:0.9rem;line-height:1.4;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>{{ message }}</span>
+              </div>
+            {% else %}
+              <div class="alert alert-error" role="alert" style="display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius,10px);background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);color:#dc2626;font-size:0.9rem;line-height:1.4;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>{{ message }}</span>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'login' %}" data-validate novalidate>
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="l-email">Email or username<span class="req">*</span></label>
+          <div class="input-group">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
+            <input type="text" id="l-email" name="email" class="form-control" placeholder="you@example.com" required />
+          </div>
+          <div class="form-error">Please enter your email or username.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="l-pw">Password<span class="req">*</span></label>
+          <div class="input-group">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+            <input type="password" id="l-pw" name="password" class="form-control" placeholder="Your password" required />
+            <button type="button" class="input-toggle" data-toggle-password aria-label="Show password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
+          <div class="form-error">Please enter your password.</div>
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <label class="checkbox"><input type="checkbox" name="remember" /> Remember me</label>
+          <a href="#" class="text-sm">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
+      </form>
+
+      <div class="divider">or</div>
+      <a href="#" class="btn btn-secondary btn-block google-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82z"></path>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.91l-3.88-3c-1.08.73-2.46 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.94H1.28v3.1A12 12 0 0 0 12 24z"></path>
+          <path fill="#FBBC05" d="M5.28 14.3a7.2 7.2 0 0 1 0-4.6v-3.1H1.28a12 12 0 0 0 0 10.8z"></path>
+          <path fill="#EA4335" d="M12 4.75c1.76 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.6l4 3.1C6.23 6.86 8.88 4.75 12 4.75z"></path>
+        </svg>
+        <span>Continue with Google</span>
+      </a>
+      <a href="#" class="btn btn-ghost btn-block" style="margin-top:var(--space-3);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path><path d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5"></path></svg>
+        <span>Student enrollment login</span>
+      </a>
+
+      <p class="auth-alt">Don't have an account? <a href="#">Create one</a></p>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+
+{% endblock %}

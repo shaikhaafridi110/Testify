@@ -196,6 +196,18 @@ function initFormValidation() {
         }
       }
       if (valid) {
+        // Forms with a real backend action (e.g. login: action="{% url 'login' %}")
+        // should actually submit to the server instead of faking success client-side.
+        const action = form.getAttribute('action');
+        const isLiveForm = action && action.trim() !== '' && action.trim() !== '#';
+
+        if (isLiveForm) {
+          const submitBtn = form.querySelector('[type="submit"]');
+          if (submitBtn) submitBtn.classList.add('is-loading');
+          form.submit();
+          return;
+        }
+
         const submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn) {
           submitBtn.classList.add('is-loading');

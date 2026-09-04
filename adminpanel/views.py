@@ -23,7 +23,8 @@ def dashboard(request):
 def user(request):
     # select_related('teacher_info') lets the template read
     # admin_user.teacher_info.approval_status without an extra query per row.
-    users_qs = User.objects.all().select_related('teacher_info').order_by('-created_at')
+    # Admins aren't managed from this list -- only ordinary users and teachers.
+    users_qs = User.objects.filter(role__in=['user', 'teacher']).select_related('teacher_info').order_by('-created_at')
 
     # ==============================
     # DASHBOARD COUNTS
@@ -591,9 +592,8 @@ def teacher_exam_delete(request, class_id, exam_id):
 # ==============================
  
 def admin_exams(request):
-    # TODO: replace with request.user.id once admin login is implemented.
     # Scopes the list to exams created by this admin only.
-    admin_id = 1
+    admin_id = request.user.id
  
     exams_qs = Exam.objects.filter(
         class_obj__isnull=True,
@@ -674,7 +674,7 @@ def admin_exam_add(request):
         # or exams under a teacher's class, aren't affected.
         if title and subject and not errors.get('title') and not errors.get('subject'):
             duplicate_exists = Exam.objects.filter(
-                created_by_id=1,  # TODO: replace with request.user.id once admin login exists
+                created_by_id=request.user.id,
                 class_obj__isnull=True,
                 title__iexact=title,
                 subject__iexact=subject,
@@ -691,7 +691,7 @@ def admin_exam_add(request):
             return redirect('admin_exam_add')
  
         exam = Exam.objects.create(
-            created_by_id=1,  # TODO: replace with request.user.id once admin login exists
+            created_by_id=request.user.id,
             class_obj=None,
             title=title,
             subject=subject,
@@ -721,10 +721,9 @@ def admin_exam_add(request):
  
  
 def admin_exam_edit(request, exam_id):
-    # NOTE: no admin login/session yet -- see admin_exam_add's TODO. Editing
-    # doesn't need an id=1 fallback because ownership already lives on the
-    # row (exam.created_by, set when it was created); the uniqueness check
-    # below scopes off that, not off "who's currently logged in".
+    # Editing doesn't need request.user.id because ownership already lives
+    # on the row (exam.created_by, set when it was created); the uniqueness
+    # check below scopes off that, not off "who's currently logged in".
     exam = get_object_or_404(Exam, id=exam_id, class_obj__isnull=True)
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
  

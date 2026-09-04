@@ -1,0 +1,295 @@
+{% extends 'master.html' %}
+
+{% block title %}Testify — Online Examination Platform{% endblock %}
+{% block meta_description %}Testify is a modern online examination platform for managing classes, exams, teachers, student enrollment, and examination results.{% endblock %}
+
+{% block content %}
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="container hero-grid">
+      <div class="hero-content" data-reveal="left">
+        <span class="eyebrow">Online Examination Platform</span>
+        <h1 class="hero-title">Smart Exams. <span class="grad">Better Performance.</span></h1>
+        <p class="hero-desc">Testify is a modern online examination platform designed to simplify classes, exams, student enrollment, and result management — all in one elegant place.</p>
+        <div class="hero-actions">
+          <a href="#" class="btn btn-primary btn-lg">Start Free Trial</a>
+          <a href="#" class="btn btn-secondary btn-lg">See How It Works</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="num" data-count="12500" data-suffix="+">0</div><div class="lbl">Students Enrolled</div></div>
+          <div class="hero-stat"><div class="num" data-count="840" data-suffix="+">0</div><div class="lbl">Exams Conducted</div></div>
+          <div class="hero-stat"><div class="num" data-count="320" data-suffix="+">0</div><div class="lbl">Active Teachers</div></div>
+        </div>
+      </div>
+      <div class="hero-card" data-reveal="right">
+        <div class="hero-card-head">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="title">Data Structures — Mid-Term</span>
+        </div>
+        <div class="mock-q">
+          <div class="q-text" style="font-size:0.95rem;font-weight:600;margin-bottom:10px;">1. Which data structure uses LIFO order?</div>
+          <div class="mock-opt">Queue</div>
+          <div class="mock-opt selected">Stack</div>
+          <div class="mock-opt">Array</div>
+          <div class="mock-opt">Linked List</div>
+        </div>
+        <div class="mock-timer">
+          <span class="text-sm text-muted">Time remaining</span>
+          <span class="time">28:42</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats strip -->
+  <section class="section-sm">
+    <div class="container">
+      <div class="stats-strip" data-stagger>
+        <div class="card stat-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+          <div class="num" data-count="12500" data-suffix="+">0</div>
+          <div class="lbl">Students</div>
+        </div>
+        <div class="card stat-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div>
+          <div class="num" data-count="320" data-suffix="+">0</div>
+          <div class="lbl">Teachers</div>
+        </div>
+        <div class="card stat-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg></div>
+          <div class="num" data-count="840" data-suffix="+">0</div>
+          <div class="lbl">Exams Created</div>
+        </div>
+        <div class="card stat-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></div>
+          <div class="num" data-count="98" data-suffix="%">0</div>
+          <div class="lbl">Uptime</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Everything you need</span>
+        <h2 class="section-title">A complete platform for modern exams</h2>
+        <p class="section-subtitle">From class creation to result reports, Testify covers the entire examination lifecycle with a clean, professional interface.</p>
+      </div>
+      <div class="feature-grid" data-stagger>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+          <h3>Online Examination</h3>
+          <p>Timed, proctored-style exams with question navigation, marking, and automatic submission.</p>
+        </div>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg></div>
+          <h3>Class Management</h3>
+          <p>Organize students into classes by course, semester, and academic year with full control.</p>
+        </div>
+        <div class="card feature-card accent card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
+          <h3>CSV Student Enrollment</h3>
+          <p>Upload enrollment CSVs to instantly populate a class — no manual student entry needed.</p>
+        </div>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+          <h3>Exam Creation</h3>
+          <p>Build exams with duration, marks, passing criteria, and scheduling in a few clicks.</p>
+        </div>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+          <h3>Question Management</h3>
+          <p>Add MCQ and True/False questions, set correct answers, and assign marks per question.</p>
+        </div>
+        <div class="card feature-card accent card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18 17V9M13 17V5M8 17v-3"></path></svg></div>
+          <h3>Result CSV Management</h3>
+          <p>Upload, preview, search, and sort result CSVs, then generate downloadable reports.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section" style="background:var(--bg-elevated);">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Simple workflow</span>
+        <h2 class="section-title">How Testify works</h2>
+        <p class="section-subtitle">Three clean workflows for admins, teachers, and students — designed to keep everyone focused.</p>
+      </div>
+      <div class="steps" data-stagger>
+        <div class="card step card-hover" data-reveal>
+          <div class="step-num">1</div>
+          <h3>Create a class</h3>
+          <p>Teachers set up a class, upload an enrollment CSV, and instantly get a student roster.</p>
+        </div>
+        <div class="card step card-hover" data-reveal>
+          <div class="step-num">2</div>
+          <h3>Build &amp; publish exams</h3>
+          <p>Add questions, set timing and marks, then publish. Students see the exam on their dashboard.</p>
+        </div>
+        <div class="card step card-hover" data-reveal>
+          <div class="step-num">3</div>
+          <h3>Manage results</h3>
+          <p>Upload result CSVs, preview scores, and generate leaderboards and reports in seconds.</p>
+        </div>
+      </div>
+      <div class="text-center mt-5"><a href="#" class="btn btn-secondary">View detailed workflows</a></div>
+    </div>
+  </section>
+
+  <!-- Role cards -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Built for every role</span>
+        <h2 class="section-title">One platform, three powerful dashboards</h2>
+        <p class="section-subtitle">Tailored interfaces for admins, teachers, and students — each with the right tools and nothing in the way.</p>
+      </div>
+      <div class="role-grid" data-stagger>
+        <div class="card role-card admin card-hover" data-reveal>
+          <div class="role-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path><path d="M9 12l2 2 4-4"></path></svg></div>
+          <h3>Admin</h3>
+          <p>Full platform control with oversight of users, teachers, classes, exams, and results.</p>
+          <ul>
+            <li>Manage users &amp; teachers</li>
+            <li>Oversee all classes</li>
+            <li>View result files</li>
+            <li>Platform notifications</li>
+          </ul>
+          <a href="{% url 'index' %}" class="btn btn-secondary">Open Admin</a>
+        </div>
+        <div class="card role-card teacher card-hover" data-reveal>
+          <div class="role-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div>
+          <h3>Teacher</h3>
+          <p>Create classes, enroll students via CSV, build exams, and manage results end-to-end.</p>
+          <ul>
+            <li>Create classes &amp; upload CSV</li>
+            <li>Build exams &amp; questions</li>
+            <li>Publish &amp; close exams</li>
+            <li>Manage result CSVs</li>
+          </ul>
+          <a href="#" class="btn btn-secondary">Open Teacher</a>
+        </div>
+        <div class="card role-card student card-hover" data-reveal>
+          <div class="role-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div>
+          <h3>Student</h3>
+          <p>Log in with an enrollment number, take exams, and view results and leaderboards.</p>
+          <ul>
+            <li>Enrollment-based login</li>
+            <li>Take timed exams</li>
+            <li>Navigate questions</li>
+            <li>View results &amp; rank</li>
+          </ul>
+          <a href="#" class="btn btn-secondary">Open Student</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benefits -->
+  <section class="section" style="background:var(--bg-elevated);">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Why Testify</span>
+        <h2 class="section-title">Designed for real examination workflows</h2>
+      </div>
+      <div class="feature-grid" data-stagger>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+          <h3>Timed &amp; proctored-style</h3>
+          <p>Countdown timers, auto-submit, and a clear question palette keep exams fair and focused.</p>
+        </div>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></div>
+          <h3>Responsive everywhere</h3>
+          <p>Works on desktop, tablet, and mobile — students can take exams from any device.</p>
+        </div>
+        <div class="card feature-card card-hover" data-reveal>
+          <div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path></svg></div>
+          <h3>Secure &amp; reliable</h3>
+          <p>Role-based access, enrollment-based student login, and consistent uptime for exam day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Trusted by educators</span>
+        <h2 class="section-title">What teachers say about Testify</h2>
+      </div>
+      <div class="testimonial-grid" data-stagger>
+        <div class="card testimonial card-hover" data-reveal>
+          <div class="stars"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg></div>
+          <p class="quote">"CSV enrollment saved me hours. I uploaded my MCA roster and had a class ready in under a minute."</p>
+          <div class="person"><div class="avatar">RP</div><div><div class="name">Rahul Sharma</div><div class="role">Assistant Professor, MCA</div></div></div>
+        </div>
+        <div class="card testimonial card-hover" data-reveal>
+          <div class="stars"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg></div>
+          <p class="quote">"The exam interface is clean and the timer just works. My students had zero confusion on exam day."</p>
+          <div class="person"><div class="avatar">PP</div><div><div class="name">Priya Patel</div><div class="role">Lecturer, Computer Science</div></div></div>
+        </div>
+        <div class="card testimonial card-hover" data-reveal>
+          <div class="stars"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg></div>
+          <p class="quote">"Result CSV uploads and the leaderboard view make post-exam reporting effortless."</p>
+          <div class="person"><div class="avatar">AS</div><div><div class="name">Amit Shah</div><div class="role">Senior Faculty, IT</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" style="background:var(--bg-elevated);">
+    <div class="container container-narrow">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Questions</span>
+        <h2 class="section-title">Frequently asked questions</h2>
+      </div>
+      <div class="accordion" data-stagger>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">How do students log in?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Students log in using their enrollment number as the username and the last 7 digits of that enrollment number as the password. This keeps student access tied to the teacher's enrollment CSV.</div></div>
+        </div>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">Do teachers add students one by one?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">No. Teachers upload a single enrollment CSV per class. Testify reads the roster from that file — there's no manual student entry and no separate student database.</div></div>
+        </div>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">How are results handled?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Teachers upload a result CSV containing enrollment numbers, scores, and pass/fail status. The platform previews, searches, and sorts that data and can generate a leaderboard from it.</div></div>
+        </div>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">Can a class have multiple exams?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Yes. A single class can contain many exams — mid-terms, unit tests, finals — each linked to the class so students see all of their class's exams in one place.</div></div>
+        </div>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">Is Testify responsive?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Yes. Every page, including the exam interface and dashboards, adapts from desktop down to mobile so students can take exams from any device.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section-sm">
+    <div class="container">
+      <div class="cta-banner" data-reveal="scale">
+        <h2>Ready to modernize your exams?</h2>
+        <p>Join hundreds of educators using Testify to run clean, professional online examinations.</p>
+        <div class="hero-actions">
+          <a href="#" class="btn btn-primary btn-lg">Create an account</a>
+          <a href="#" class="btn btn-secondary btn-lg">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

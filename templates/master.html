@@ -1,0 +1,50 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Testify{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Testify — the online examination platform.{% endblock %}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'assets/css/style.css' %}" />
+  <link rel="stylesheet" href="{% static 'assets/css/responsive.css' %}" />
+  <link rel="stylesheet" href="{% static 'assets/css/animations.css' %}" />
+  <style>
+{% block style %}{% endblock %}
+  </style>
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232548d6'/%3E%3Cpath d='M9 16l5 5 9-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  {% block social_meta %}
+  <meta property="og:image" content="https://bolt.new/static/og_default.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+  {% endblock %}
+</head>
+
+<body>
+  <div class="page-loader">
+    <div class="spinner"></div>
+  </div>
+
+  {% include 'header.html' %}
+
+  {% block content %}{% endblock %}
+
+  {% block footer %}{% include 'footer.html' %}{% endblock %}
+
+  <div class="toast-wrap"></div>
+  <script src="{% static 'assets/js/theme.js' %}"></script>
+  <script src="{% static 'assets/js/navigation.js' %}"></script>
+  <script src="{% static 'assets/js/animations.js' %}"></script>
+  <script src="{% static 'assets/js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>

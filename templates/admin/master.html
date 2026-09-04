@@ -18,6 +18,47 @@
   <link rel="stylesheet" href="{% static 'assets/css/animations.css' %}" />
  <style>
 {% block style %}{% endblock %}
+
+  /* ---- admin account card (sidebar footer) ---- */
+  .sidebar-account {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .65rem .75rem;
+    margin: 0 0 .5rem;
+    border-radius: 12px;
+    background: rgba(37, 72, 214, .06);
+  }
+  .sidebar-account__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex: none;
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2548d6;
+    color: #fff;
+    font-weight: 700;
+    font-size: .85rem;
+    text-transform: uppercase;
+  }
+  .sidebar-account__info {
+    min-width: 0;
+  }
+  .sidebar-account__name {
+    font-weight: 600;
+    font-size: .85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar-account__role {
+    font-size: .72rem;
+    opacity: .65;
+    text-transform: capitalize;
+  }
 </style>
   <link rel="icon"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232548d6'/%3E%3Cpath d='M9 16l5 5 9-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -85,7 +126,7 @@
               d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
             </path>
           </svg> Settings</a>
-        <a href="../login.html" class="side-link"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"
+        <a href="{% url 'logout' %}" class="side-link"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -93,6 +134,18 @@
           </svg> Sign out</a>
       </nav>
       <div class="sidebar-foot">
+        <!-- Logged-in admin: avatar (photo if set, else initial) + name + role -->
+        <div class="sidebar-account">
+          {% if request.user.profile_image %}
+            <img class="sidebar-account__avatar" src="{{ request.user.profile_image.url }}" alt="{{ request.user.name }}">
+          {% else %}
+            <span class="sidebar-account__avatar">{{ request.user.name|first }}</span>
+          {% endif %}
+          <div class="sidebar-account__info">
+            <div class="sidebar-account__name">{{ request.user.name }}</div>
+            <div class="sidebar-account__role">{{ request.user.role }}</div>
+          </div>
+        </div>
         <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme" style="width:100%;">
           <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
