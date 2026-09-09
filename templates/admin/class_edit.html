@@ -4,111 +4,85 @@
 Edit Class — Testify Admin
 {% endblock %}
 
+{% block page_title %}Edit Class{% endblock %}
+{% block page_subtitle %}Update {{ class_obj.class_name }}'s details.{% endblock %}
+
 {% block content %}
-<div class="dash-main">
-  <header class="dash-header">
-    <div class="flex items-center gap-3">
-      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg></button>
-      <div class="dash-title">
-        <h1>Edit Class</h1>
-        <p>Update {{ class_obj.class_name }}'s details.</p>
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
+    href="{% url 'teacher_classes' %}">Classes</a><span class="sep">/</span><span class="current">Edit</span>
+</div>
+
+<div class="card card-pad-lg" style="max-width:640px;" data-reveal>
+  <form method="post" action="{% url 'teacher_class_edit' class_obj.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label" for="class_name">Class Name<span class="req">*</span></label>
+      <input type="text" id="class_name" name="class_name" class="form-control"
+        value="{{ class_obj.class_name }}" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="subject">Subject<span class="req">*</span></label>
+      <input type="text" id="subject" name="subject" class="form-control" value="{{ class_obj.subject }}"
+        required>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="course">Course</label>
+        <input type="text" id="course" name="course" class="form-control" value="{{ class_obj.course }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="semester">Semester</label>
+        <input type="text" id="semester" name="semester" class="form-control" value="{{ class_obj.semester }}">
       </div>
     </div>
-    <div class="dash-actions">
-      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
-            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg></button>
-        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
-            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="academic_year">Academic Year</label>
+        <input type="text" id="academic_year" name="academic_year" class="form-control"
+          value="{{ class_obj.academic_year }}" placeholder="e.g. 2025-2026">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-control select">
+          <option value="active" {% if class_obj.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if class_obj.status == 'inactive' %}selected{% endif %}>Inactive</option>
+          <option value="completed" {% if class_obj.status == 'completed' %}selected{% endif %}>Completed</option>
+        </select>
       </div>
     </div>
-  </header>
 
-  <div class="dash-content">
-    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
-        href="{% url 'teacher_classes' %}">Classes</a><span class="sep">/</span><span class="current">Edit</span>
+    <div class="form-group">
+      <label class="form-label" for="description">Description</label>
+      <textarea id="description" name="description" class="form-control" rows="4">{{ class_obj.description|default:'' }}</textarea>
     </div>
 
-    <div class="card card-pad-lg" style="max-width:640px;" data-reveal>
-      <form method="post" action="{% url 'teacher_class_edit' class_obj.id %}" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <div class="form-group">
-          <label class="form-label" for="class_name">Class Name<span class="req">*</span></label>
-          <input type="text" id="class_name" name="class_name" class="form-control"
-            value="{{ class_obj.class_name }}" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="subject">Subject<span class="req">*</span></label>
-          <input type="text" id="subject" name="subject" class="form-control" value="{{ class_obj.subject }}"
-            required>
-        </div>
-
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="course">Course</label>
-            <input type="text" id="course" name="course" class="form-control" value="{{ class_obj.course }}">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="semester">Semester</label>
-            <input type="text" id="semester" name="semester" class="form-control" value="{{ class_obj.semester }}">
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="academic_year">Academic Year</label>
-            <input type="text" id="academic_year" name="academic_year" class="form-control"
-              value="{{ class_obj.academic_year }}" placeholder="e.g. 2025-2026">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="status">Status</label>
-            <select id="status" name="status" class="form-control select">
-              <option value="active" {% if class_obj.status == 'active' %}selected{% endif %}>Active</option>
-              <option value="inactive" {% if class_obj.status == 'inactive' %}selected{% endif %}>Inactive</option>
-              <option value="completed" {% if class_obj.status == 'completed' %}selected{% endif %}>Completed</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="description">Description</label>
-          <textarea id="description" name="description" class="form-control" rows="4">{{ class_obj.description|default:'' }}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="student_info">Student Info File</label>
-          {% if class_obj.student_info %}
-          <p style="margin-bottom:8px;">
-            <a href="{{ class_obj.student_info.url }}" download>Download current CSV</a>
-          </p>
-          {% endif %}
-          <input type="file" id="student_info" name="student_info" class="form-control">
-        </div>
-
-        <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
-          <div class="flex gap-3">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="{% url 'teacher_classes' %}" class="btn btn-secondary">Cancel</a>
-          </div>
-          <button type="button" class="btn btn-danger"
-            onclick="confirmAction('Delete class {{ class_obj.class_name|escapejs }}? This cannot be undone.',()=>deleteClass('{{ class_obj.id }}'))">
-            Delete Class
-          </button>
-        </div>
-      </form>
+    <div class="form-group">
+      <label class="form-label" for="student_info">Student Info File</label>
+      {% if class_obj.student_info %}
+      <p style="margin-bottom:8px;">
+        <a href="{{ class_obj.student_info.url }}" download>Download current CSV</a>
+      </p>
+      {% endif %}
+      <input type="file" id="student_info" name="student_info" class="form-control">
     </div>
-  </div>
+
+    <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
+      <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'teacher_classes' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+      <button type="button" class="btn btn-danger"
+        onclick="confirmAction('Delete class {{ class_obj.class_name|escapejs }}? This cannot be undone.',()=>deleteClass('{{ class_obj.id }}'))">
+        Delete Class
+      </button>
+    </div>
+  </form>
 </div>
 
 <script>

@@ -538,6 +538,21 @@ def teacher_exam_edit(request, class_id, exam_id):
             if new_status not in dict(Exam.STATUS_CHOICES):
                 errors['status'] = 'Invalid status.'
 
+        # ------------------------------------------------------------
+        # Guard: total_marks can't be reduced below marks already
+        # assigned to this exam's questions -- otherwise editing the
+        # exam could silently put it "over marks" without touching any
+        # question at all.
+        # ------------------------------------------------------------
+        if 'total_marks' in request.POST and not errors.get('total_marks'):
+            if new_total_marks and str(new_total_marks).isdigit():
+                current_marks_added = sum(q.marks for q in Question.objects.filter(exam=exam))
+                if int(new_total_marks) < current_marks_added:
+                    errors['total_marks'] = (
+                        f'Total marks can\'t be less than the {current_marks_added} '
+                        f'mark(s) already assigned to questions in this exam.'
+                    )
+
         if errors:
             first_error = next(iter(errors.values()))
             if is_ajax:
@@ -786,6 +801,19 @@ def admin_exam_edit(request, exam_id):
             if duplicate_exists:
                 errors['subject'] = 'This admin already has an exam with this title and subject.'
  
+        # ------------------------------------------------------------
+        # Guard: total_marks can't be reduced below marks already
+        # assigned to this exam's questions.
+        # ------------------------------------------------------------
+        if 'total_marks' in request.POST and not errors.get('total_marks'):
+            if new_total_marks and str(new_total_marks).isdigit():
+                current_marks_added = sum(q.marks for q in Question.objects.filter(exam=exam))
+                if int(new_total_marks) < current_marks_added:
+                    errors['total_marks'] = (
+                        f'Total marks can\'t be less than the {current_marks_added} '
+                        f'mark(s) already assigned to questions in this exam.'
+                    )
+ 
         if errors:
             first_error = next(iter(errors.values()))
             if is_ajax:
@@ -847,12 +875,28 @@ def _redirect_add(exam, tab):
     return HttpResponseRedirect(reverse('question_add', args=[exam.id]) + f'?tab={tab}')
 
 
+def _marks_remaining(exam, exclude_question_id=None):
+    """
+    Marks still available to assign on this exam.
+
+    exam.total_marks - sum of marks already on this exam's questions.
+    Pass exclude_question_id when editing an existing question so its own
+    current marks aren't counted against itself.
+    """
+    qs = Question.objects.filter(exam=exam)
+    if exclude_question_id is not None:
+        qs = qs.exclude(id=exclude_question_id)
+    marks_used = sum(q.marks for q in qs)
+    return exam.total_marks - marks_used
+
+
 def exam_questions(request, exam_id):
     exam = get_object_or_404(Exam, id=exam_id)
     questions_qs = Question.objects.filter(exam=exam).prefetch_related('options').order_by('question_order', 'id')
 
     total_questions = questions_qs.count()
     total_marks_added = sum(q.marks for q in questions_qs)
+    marks_remaining = exam.total_marks - total_marks_added
 
     context = {
         'exam': exam,
@@ -860,6 +904,7 @@ def exam_questions(request, exam_id):
         'questions': questions_qs,
         'total_questions': total_questions,
         'total_marks_added': total_marks_added,
+        'marks_remaining': marks_remaining,
     }
     return render(request, 'admin/exam_questions.html', context)
 
@@ -868,11 +913,27 @@ def exam_questions(request, exam_id):
 # Combined "Add Questions" page -- one page, three tabs
 # (Manual / CSV / PDF). Each tab's form posts to its own
 # handler below; this view only renders the shell.
+#
+# If the exam's full mark budget is already assigned, there's
+# nothing left to add -- bounce back to the questions list
+# instead of showing a builder that can only fail.
 # ------------------------------------------------------------
 
 def question_add(request, exam_id):
     exam = get_object_or_404(Exam, id=exam_id)
-    return render(request, 'admin/question_add.html', {'exam': exam})
+    marks_remaining = _marks_remaining(exam)
+
+    if marks_remaining <= 0:
+        messages.error(
+            request,
+            f'All {exam.total_marks} mark(s) for this exam have already been added to questions.'
+        )
+        return redirect('exam_questions', exam_id=exam.id)
+
+    return render(request, 'admin/question_add.html', {
+        'exam': exam,
+        'marks_remaining': marks_remaining,
+    })
 
 
 # ------------------------------------------------------------
@@ -895,10 +956,21 @@ def question_add_manual(request, exam_id):
         # "correct_option" radio index still lines up.
         filled_options = [(i, text) for i, text in enumerate(option_texts) if text]
 
+        marks_remaining = _marks_remaining(exam)
+
         if not question_text:
             errors['question_text'] = 'Question text is required.'
+
         if not marks or not marks.isdigit():
             errors['marks'] = 'Marks must be a whole number.'
+        elif marks_remaining <= 0:
+            errors['marks'] = f'All {exam.total_marks} mark(s) for this exam have already been added.'
+        elif int(marks) > marks_remaining:
+            errors['marks'] = (
+                f'Only {marks_remaining} mark{"s" if marks_remaining != 1 else ""} left for this exam '
+                f'-- lower the marks or free some up first.'
+            )
+
         if len(filled_options) < 2:
             errors['options'] = 'Add at least 2 options.'
         if correct_index == '' or not any(str(i) == correct_index for i, _ in filled_options):
@@ -928,6 +1000,11 @@ def question_add_manual(request, exam_id):
         messages.success(request, 'Question added.')
 
         if 'save_add_another' in request.POST:
+            # If that was the last mark available, don't bounce back into
+            # a builder that can no longer accept anything.
+            if _marks_remaining(exam) <= 0:
+                messages.success(request, f'All {exam.total_marks} mark(s) for this exam are now assigned.')
+                return redirect('exam_questions', exam_id=exam.id)
             return _redirect_add(exam, 'manual')
         return redirect('exam_questions', exam_id=exam.id)
 
@@ -969,10 +1046,16 @@ def question_add_csv(request, exam_id):
         option_cols = ['option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'option_f']
 
         next_order = Question.objects.filter(exam=exam).count()
+        marks_remaining = _marks_remaining(exam)
         created_count = 0
         skipped_rows = []
+        over_budget_rows = []
 
         for row_num, raw_row in enumerate(reader, start=2):  # row 1 is the header
+            if marks_remaining <= 0:
+                # Nothing left to give -- stop processing further rows.
+                break
+
             row = {(k or '').strip().lower(): (v or '').strip() for k, v in raw_row.items()}
 
             question_text = row.get('question_text', '')
@@ -987,6 +1070,10 @@ def question_add_csv(request, exam_id):
             )
             if not valid:
                 skipped_rows.append(row_num)
+                continue
+
+            if int(marks) > marks_remaining:
+                over_budget_rows.append(row_num)
                 continue
 
             next_order += 1
@@ -1004,12 +1091,23 @@ def question_add_csv(request, exam_id):
                     is_correct=(OPTION_KEYS[idx] == correct_letter),
                 )
             created_count += 1
+            marks_remaining -= int(marks)
 
         if created_count:
             summary = f'{created_count} question(s) imported from CSV.'
             if skipped_rows:
-                summary += f' Skipped row(s): {", ".join(str(r) for r in skipped_rows)}.'
+                summary += f' Skipped invalid row(s): {", ".join(str(r) for r in skipped_rows)}.'
+            if over_budget_rows:
+                summary += (
+                    f' Row(s) exceeding the exam\'s remaining marks were skipped: '
+                    f'{", ".join(str(r) for r in over_budget_rows)}.'
+                )
             messages.success(request, summary)
+        elif over_budget_rows:
+            messages.error(
+                request,
+                'No rows imported -- every remaining row would exceed the marks left for this exam.'
+            )
         else:
             messages.error(request, 'No valid rows found in that CSV. Check the example format below.')
 
@@ -1118,9 +1216,18 @@ def question_add_pdf(request, exam_id):
             return _redirect_add(exam, 'pdf')
 
         next_order = Question.objects.filter(exam=exam).count()
+        marks_remaining = _marks_remaining(exam)
         created_count = 0
+        skipped_over_budget = 0
 
         for q in questions_data:
+            if marks_remaining <= 0:
+                break
+
+            if q['marks'] > marks_remaining:
+                skipped_over_budget += 1
+                continue
+
             next_order += 1
             question = Question.objects.create(
                 exam=exam,
@@ -1136,8 +1243,21 @@ def question_add_pdf(request, exam_id):
                     is_correct=opt['is_correct'],
                 )
             created_count += 1
+            marks_remaining -= q['marks']
 
-        messages.success(request, f'{created_count} question(s) imported from PDF.')
+        if created_count:
+            summary = f'{created_count} question(s) imported from PDF.'
+            if skipped_over_budget:
+                summary += f' {skipped_over_budget} question(s) skipped -- over the marks remaining for this exam.'
+            messages.success(request, summary)
+        elif skipped_over_budget:
+            messages.error(
+                request,
+                'No questions imported -- they would all exceed the marks remaining for this exam.'
+            )
+        else:
+            messages.error(request, 'No questions could be found. Match the format shown in the example below.')
+
         return redirect('exam_questions', exam_id=exam.id)
 
     return _redirect_add(exam, 'pdf')
@@ -1152,6 +1272,10 @@ def question_edit(request, exam_id, question_id):
     question = get_object_or_404(Question, id=question_id, exam=exam)
     options = list(question.options.all().order_by('option_key'))
 
+    # This question's own current marks don't count against itself --
+    # only the *other* questions on the exam eat into the budget.
+    marks_remaining = _marks_remaining(exam, exclude_question_id=question.id)
+
     if request.method == 'POST':
         errors = {}
 
@@ -1163,8 +1287,15 @@ def question_edit(request, exam_id, question_id):
 
         if not question_text:
             errors['question_text'] = 'Question text is required.'
+
         if not marks or not marks.isdigit():
             errors['marks'] = 'Marks must be a whole number.'
+        elif int(marks) > marks_remaining:
+            errors['marks'] = (
+                f'Only {marks_remaining} mark{"s" if marks_remaining != 1 else ""} available '
+                f'for this question given the exam\'s total marks.'
+            )
+
         if not correct_option_id:
             errors['correct_option'] = 'Select which option is correct.'
 
@@ -1193,6 +1324,7 @@ def question_edit(request, exam_id, question_id):
         'exam': exam,
         'question': question,
         'options': options,
+        'marks_remaining': marks_remaining,
     })
 
 
@@ -1351,5 +1483,197 @@ def admin_result_delete(request, attempt_id):
 
     attempt = get_object_or_404(UserExamAttempt, id=attempt_id)
     attempt.delete()
+
+    return JsonResponse({'success': True})
+
+
+
+
+
+
+
+#====================================================
+# contact — admin view / reply / delete
+#====================================================
+from .models import Contact  # add Contact to your existing model import line at the top
+
+
+def admin_contact_status(request, contact_id):
+    """AJAX status toggle — same pattern as user_edit's status-only branch,
+    but scoped to Contact's own status choices (new/read/replied)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+    contact = get_object_or_404(Contact, id=contact_id)
+    new_status = request.POST.get('status', '').strip()
+
+    if new_status not in dict(Contact.STATUS_CHOICES):
+        return JsonResponse({'error': 'Invalid status.'}, status=400)
+
+    from django.utils import timezone
+
+    contact.status = new_status
+    # Keep replied_at consistent if an admin manually flips status to/away
+    # from 'replied' outside the normal reply flow.
+    if new_status == 'replied' and not contact.replied_at:
+        contact.replied_at = timezone.now()
+    contact.save()
+
+    return JsonResponse({
+        'success': True,
+        'status': contact.status,
+        'status_display': contact.get_status_display(),
+    })
+
+
+def admin_contacts(request):
+    contacts_qs = Contact.objects.all().order_by('-created_at')
+
+    # ==============================
+    # DASHBOARD COUNTS
+    # ==============================
+
+    total_contacts = Contact.objects.count()
+    new_contacts = Contact.objects.filter(status='new').count()
+    read_contacts = Contact.objects.filter(status='read').count()
+    replied_contacts = Contact.objects.filter(status='replied').count()
+
+    # ---- search ----
+    search = request.GET.get('q', '').strip()
+    if search:
+        contacts_qs = contacts_qs.filter(
+            Q(name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(subject__icontains=search)
+        )
+
+    # ---- filter by status ----
+    status = request.GET.get('status', '').strip()
+    if status:
+        contacts_qs = contacts_qs.filter(status=status)
+
+    # ---- pagination ----
+    paginator = Paginator(contacts_qs, 6)
+    page_number = request.GET.get('page', 1)
+    contacts = paginator.get_page(page_number)
+
+    context = {
+        'contacts': contacts,
+        'search': search,
+        'status': status,
+
+        'total_contacts': total_contacts,
+        'new_contacts': new_contacts,
+        'read_contacts': read_contacts,
+        'replied_contacts': replied_contacts,
+    }
+    return render(request, 'admin/contacts.html', context)
+
+
+def admin_contact_view(request, contact_id):
+    """Read-only detail of one contact message, returned as JSON so the
+    contacts page can render it in a modal without a full page reload.
+    Also marks the message as 'read' the first time it's opened."""
+    contact = get_object_or_404(Contact, id=contact_id)
+
+    if contact.status == 'new':
+        contact.status = 'read'
+        contact.save()
+
+    payload = {
+        'id': contact.id,
+        'name': contact.name,
+        'email': contact.email,
+        'subject': contact.subject,
+        'message': contact.message,
+        'status': contact.status,
+        'admin_reply': contact.admin_reply,
+        'replied_at': contact.replied_at.isoformat() if contact.replied_at else None,
+        'created_at': contact.created_at.isoformat(),
+    }
+
+    return JsonResponse({'success': True, 'contact': payload})
+
+
+def admin_contact_reply(request, contact_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+    contact = get_object_or_404(Contact, id=contact_id)
+    reply_text = request.POST.get('admin_reply', '').strip()
+
+    if not reply_text:
+        return JsonResponse({'error': 'Reply message cannot be empty.'}, status=400)
+
+    # A message can only be sent once per click server-side too: if it's
+    # already marked replied, treat a resubmit as updating that reply
+    # rather than silently double-sending mail on a stray retry.
+    from django.conf import settings
+    from django.utils import timezone
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    from django.core.mail import EmailMultiAlternatives
+
+    contact.admin_reply = reply_text
+    contact.status = 'replied'
+    contact.replied_at = timezone.now()
+    if request.user.is_authenticated:
+        contact.admin = request.user
+    contact.save()
+
+    # Email the reply to the person who submitted the form, as a branded
+    # HTML message with a plain-text fallback. Doesn't block the save if
+    # SMTP fails -- the reply is already recorded either way.
+    try:
+        html_body = render_to_string(
+            'emails/contact_reply.html',
+            {
+                'name': contact.name,
+                'subject': contact.subject,
+                'original_message': contact.message,
+                'reply_text': reply_text,
+                'site_name': 'Testify',
+            }
+        )
+
+        text_body = strip_tags(html_body)
+
+        email = EmailMultiAlternatives(
+            subject=f"Re: {contact.subject}",
+            body=text_body,
+            from_email=settings.EMAIL_HOST_USER,
+            to=[contact.email],
+        )
+
+        email.attach_alternative(
+            html_body,
+            "text/html"
+        )
+
+        email.send(fail_silently=False)
+
+    except Exception as e:
+        print("EMAIL ERROR:", e)
+
+        return JsonResponse({
+            'success': False,
+            'error': 'Reply was saved, but email could not be sent.',
+            'details': str(e),
+        }, status=500)
+
+    return JsonResponse({
+        'success': True,
+        'status': contact.status,
+        'replied_at': contact.replied_at.isoformat(),
+        'message': 'Reply saved and email sent successfully.',
+    })  
+
+
+def admin_contact_delete(request, contact_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+    contact = get_object_or_404(Contact, id=contact_id)
+    contact.delete()
 
     return JsonResponse({'success': True})

@@ -1,0 +1,95 @@
+{% load static %}
+<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0"
+          style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.08);">
+
+          <!-- Header / brand -->
+          <tr>
+            <td style="background:#2548d6;padding:24px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:36px;height:36px;background:#ffffff;border-radius:9px;text-align:center;vertical-align:middle;">
+                    <span style="color:#2548d6;font-weight:800;font-size:18px;line-height:36px;font-family:Arial,sans-serif;">T</span>
+                  </td>
+                  <td style="padding-left:10px;">
+                    <span style="color:#ffffff;font-size:18px;font-weight:700;">{{ site_name }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 4px;font-size:13px;color:#64748b;">Hi {{ name }},</p>
+              <h1 style="margin:0 0 20px;font-size:20px;color:#0f172a;">
+                We've replied to your message
+              </h1>
+
+              <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#94a3b8;">
+                Subject
+              </p>
+              <p style="margin:0 0 20px;font-size:14px;color:#0f172a;">{{ subject }}</p>
+
+              <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#94a3b8;">
+                Your message
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:0 0 20px;">
+                <tr>
+                  <td style="padding:14px 16px;font-size:14px;line-height:1.6;color:#334155;white-space:pre-wrap;">{{ original_message }}</td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#16a34a;">
+                Our reply
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin:0 0 28px;">
+                <tr>
+                  <td style="padding:14px 16px;font-size:14px;line-height:1.6;color:#14532d;white-space:pre-wrap;">{{ reply_text }}</td>
+                </tr>
+              </table>
+
+              <!-- CTA: come back any time -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                style="background:#f8fafc;border-radius:10px;margin:0 0 8px;">
+                <tr>
+                  <td style="padding:18px 20px;text-align:center;">
+                    <p style="margin:0 0 12px;font-size:13px;color:#475569;">
+                      Still have a question, or a new one came up? We're happy to help —
+                      just reach out again any time and we'll get back to you.
+                    </p>
+                    <a href="{{ contact_url }}"
+                      style="display:inline-block;background:#2548d6;color:#ffffff;text-decoration:none;
+                             font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;">
+                      Contact us again
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:18px 32px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:11px;color:#94a3b8;">
+                This message was sent by {{ site_name }} in response to a message you submitted through our contact form.
+                Please don't reply directly to this email — use the button above if you need anything else.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

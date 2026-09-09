@@ -4,161 +4,134 @@
 Edit User — Testify Admin
 {% endblock %}
 
+{% block page_title %}Edit User{% endblock %}
+{% block page_subtitle %}Update {{ user_obj.name }}'s account details.{% endblock %}
+
 {% block content %}
-<div class="dash-main">
-  <header class="dash-header">
-    <div class="flex items-center gap-3">
-      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg></button>
-      <div class="dash-title">
-        <h1>Edit User</h1>
-        <p>Update {{ user_obj.name }}'s account details.</p>
-      </div>
-    </div>
-    <div class="dash-actions">
-      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
-            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg></button>
-        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
-            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
-      </div>
-    </div>
-  </header>
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span>
+    <a href="{% url 'admin_user' %}">Users</a><span class="sep">/</span><span class="current">Edit</span>
+</div>
 
-  <div class="dash-content">
-    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
-        href="{% url 'admin_user' %}">Users</a><span class="sep">/</span><span class="current">Edit</span>
-    </div>
+<div class="card card-pad-lg" style="max-width:640px;" data-reveal>
+  <form method="post" action="{% url 'admin_user_edit' user_obj.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
 
-    <div class="card card-pad-lg" style="max-width:640px;" data-reveal>
-      <form method="post" action="{% url 'admin_user_edit' user_obj.id %}" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <!-- ---------- profile image (all users) ---------- -->
-        <div class="form-group">
-          <label class="form-label">Profile Image</label>
-          <div class="flex items-center gap-3">
-           {% if user_obj.profile_image %}
-    <img id="profile-preview"
-         src="{{ user_obj.profile_image.url }}"
-         alt="{{ user_obj.name }}"
-         style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
+    <!-- ---------- profile image (all users) ---------- -->
+    <div class="form-group">
+      <label class="form-label">Profile Image</label>
+      <div class="flex items-center gap-3">
+       {% if user_obj.profile_image %}
+<img id="profile-preview"
+     src="{{ user_obj.profile_image.url }}"
+     alt="{{ user_obj.name }}"
+     style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
 {% else %}
-            <span id="profile-preview-fallback" class="avatar"
-              style="width:56px; height:56px; font-size:1.1rem;">{{ user_obj.name|slice:":2"|upper }}</span>
-            <img id="profile-preview" src="" alt="{{ user_obj.name }}"
-              style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); display:none;">
-            {% endif %}
-            <input type="file" id="profile_image" name="profile_image" class="form-control" accept="image/*"
-              onchange="previewProfileImage(this)">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="name">Full Name<span class="req">*</span></label>
-          <input type="text" id="name" name="name" class="form-control" value="{{ user_obj.name }}" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="email">Email<span class="req">*</span></label>
-          <input type="email" id="email" name="email" class="form-control" value="{{ user_obj.email }}" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="phone">Phone</label>
-          <input type="text" id="phone" name="phone" class="form-control" value="{{ user_obj.phone|default:'' }}"
-            maxlength="10" pattern="[0-9]{10}" placeholder="10-digit phone number">
-          <div class="form-error">Phone must be exactly 10 digits.</div>
-        </div>
-
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="role">Role</label>
-            <select id="role" name="role" class="form-control select" onchange="toggleTeacherSection(this.value)">
-              <option value="user" {% if user_obj.role == 'user' %}selected{% endif %}>User</option>
-              <option value="teacher" {% if user_obj.role == 'teacher' %}selected{% endif %}>Teacher</option>
-              <option value="admin" {% if user_obj.role == 'admin' %}selected{% endif %}>Admin</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="status">Status</label>
-            <select id="status" name="status" class="form-control select">
-              <option value="active" {% if user_obj.status == 'active' %}selected{% endif %}>Active</option>
-              <option value="inactive" {% if user_obj.status == 'inactive' %}selected{% endif %}>Inactive</option>
-              <option value="blocked" {% if user_obj.status == 'blocked' %}selected{% endif %}>Blocked</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- ---------- teacher info (only relevant when role = teacher) ---------- -->
-        <div id="teacher-section" style="{% if user_obj.role != 'teacher' %}display:none;{% endif %} margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--border);">
-          <h3 style="margin-bottom: var(--space-4);">Teacher Details</h3>
-
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="college_name">College Name<span class="req">*</span></label>
-              <input type="text" id="college_name" name="college_name" class="form-control"
-                value="{{ teacher_info.college_name|default:'' }}">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="college_phone">College Phone<span class="req">*</span></label>
-              <input type="text" id="college_phone" name="college_phone" class="form-control"
-                value="{{ teacher_info.college_phone|default:'' }}">
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="qualification">Qualification<span class="req">*</span></label>
-              <input type="text" id="qualification" name="qualification" class="form-control"
-                value="{{ teacher_info.qualification|default:'' }}">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="subject">Subject<span class="req">*</span></label>
-              <input type="text" id="subject" name="subject" class="form-control"
-                value="{{ teacher_info.subject|default:'' }}">
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="experience">Experience</label>
-              <input type="text" id="experience" name="experience" class="form-control"
-                value="{{ teacher_info.experience|default:'' }}" placeholder="e.g. 5 years">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="approval_status">Approval Status</label>
-              <select id="approval_status" name="approval_status" class="form-control select">
-                <option value="pending" {% if teacher_info.approval_status == 'pending' or not teacher_info %}selected{% endif %}>Pending</option>
-                <option value="approved" {% if teacher_info.approval_status == 'approved' %}selected{% endif %}>Approved</option>
-                <option value="rejected" {% if teacher_info.approval_status == 'rejected' %}selected{% endif %}>Rejected</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="bio">Bio</label>
-            <textarea id="bio" name="bio" class="form-control" rows="4">{{ teacher_info.bio|default:'' }}</textarea>
-          </div>
-        </div>
-
-        <div class="flex gap-3" style="margin-top: var(--space-5);">
-          <button type="submit" class="btn btn-primary">Save Changes</button>
-          <a href="{% url 'admin_user' %}" class="btn btn-secondary">Cancel</a>
-        </div>
-      </form>
+        <span id="profile-preview-fallback" class="avatar"
+          style="width:56px; height:56px; font-size:1.1rem;">{{ user_obj.name|slice:":2"|upper }}</span>
+        <img id="profile-preview" src="" alt="{{ user_obj.name }}"
+          style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); display:none;">
+        {% endif %}
+        <input type="file" id="profile_image" name="profile_image" class="form-control" accept="image/*"
+          onchange="previewProfileImage(this)">
+      </div>
     </div>
-  </div>
+
+    <div class="form-group">
+      <label class="form-label" for="name">Full Name<span class="req">*</span></label>
+      <input type="text" id="name" name="name" class="form-control" value="{{ user_obj.name }}" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="email">Email<span class="req">*</span></label>
+      <input type="email" id="email" name="email" class="form-control" value="{{ user_obj.email }}" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="phone">Phone</label>
+      <input type="text" id="phone" name="phone" class="form-control" value="{{ user_obj.phone|default:'' }}"
+        maxlength="10" pattern="[0-9]{10}" placeholder="10-digit phone number">
+      <div class="form-error">Phone must be exactly 10 digits.</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="role">Role</label>
+        <select id="role" name="role" class="form-control select" onchange="toggleTeacherSection(this.value)">
+          <option value="user" {% if user_obj.role == 'user' %}selected{% endif %}>User</option>
+          <option value="teacher" {% if user_obj.role == 'teacher' %}selected{% endif %}>Teacher</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-control select">
+          <option value="active" {% if user_obj.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if user_obj.status == 'inactive' %}selected{% endif %}>Inactive</option>
+          <option value="blocked" {% if user_obj.status == 'blocked' %}selected{% endif %}>Blocked</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ---------- teacher info (only relevant when role = teacher) ---------- -->
+    <div id="teacher-section" style="{% if user_obj.role != 'teacher' %}display:none;{% endif %} margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--border);">
+      <h3 style="margin-bottom: var(--space-4);">Teacher Details</h3>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="college_name">College Name<span class="req">*</span></label>
+          <input type="text" id="college_name" name="college_name" class="form-control"
+            value="{{ teacher_info.college_name|default:'' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="college_phone">College Phone<span class="req">*</span></label>
+          <input type="text" id="college_phone" name="college_phone" class="form-control"
+            value="{{ teacher_info.college_phone|default:'' }}">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="qualification">Qualification<span class="req">*</span></label>
+          <input type="text" id="qualification" name="qualification" class="form-control"
+            value="{{ teacher_info.qualification|default:'' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="subject">Subject<span class="req">*</span></label>
+          <input type="text" id="subject" name="subject" class="form-control"
+            value="{{ teacher_info.subject|default:'' }}">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="experience">Experience</label>
+          <input type="text" id="experience" name="experience" class="form-control"
+            value="{{ teacher_info.experience|default:'' }}" placeholder="e.g. 5 years">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="approval_status">Approval Status</label>
+          <select id="approval_status" name="approval_status" class="form-control select">
+            <option value="pending" {% if teacher_info.approval_status == 'pending' or not teacher_info %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if teacher_info.approval_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if teacher_info.approval_status == 'rejected' %}selected{% endif %}>Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="bio">Bio</label>
+        <textarea id="bio" name="bio" class="form-control" rows="4">{{ teacher_info.bio|default:'' }}</textarea>
+      </div>
+    </div>
+
+    <div class="flex gap-3" style="margin-top: var(--space-5);">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="{% url 'admin_user' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
 </div>
 
 <script>

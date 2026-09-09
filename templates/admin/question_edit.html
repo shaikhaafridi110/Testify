@@ -4,6 +4,9 @@
 Edit Question — {{ exam.title }} — Testify Admin
 {% endblock %}
 
+{% block page_title %}Edit Question{% endblock %}
+{% block page_subtitle %}Update this question in {{ exam.title }}.{% endblock %}
+
 {% block style %}
 .option-row {
   display: flex;
@@ -34,80 +37,51 @@ Edit Question — {{ exam.title }} — Testify Admin
 {% endblock %}
 
 {% block content %}
-<div class="dash-main">
-  <header class="dash-header">
-    <div class="flex items-center gap-3">
-      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg></button>
-      <div class="dash-title">
-        <h1>Edit Question</h1>
-        <p>Update this question in {{ exam.title }}.</p>
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
+    href="{% url 'exam_questions' exam.id %}">{{ exam.title }} — Questions</a><span class="sep">/</span>
+  <span class="current">Edit Question</span>
+</div>
+
+<div class="card card-pad-lg" style="max-width:720px;" data-reveal>
+  <form method="post" action="{% url 'question_edit' exam.id question.id %}">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label" for="question_text">Question<span class="req">*</span></label>
+      <textarea id="question_text" name="question_text" class="form-control" rows="3" required>{{ question.question_text }}</textarea>
+    </div>
+
+    <div class="form-group" style="max-width:160px;">
+      <label class="form-label" for="marks">Marks<span class="req">*</span></label>
+      <input type="number" id="marks" name="marks" class="form-control" min="1" value="{{ question.marks }}" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Options<span class="req">*</span></label>
+      <p style="font-size:0.8rem; color:var(--text-muted,#6b7280); margin:-4px 0 12px;">
+        Select the radio button next to the correct option.
+      </p>
+      {% for opt in options %}
+      <div class="option-row">
+        <span class="option-key">{{ opt.option_key }}</span>
+        <input type="radio" name="correct_option" value="{{ opt.id }}" {% if opt.is_correct %}checked{% endif %} required>
+        <input type="hidden" name="option_id[]" value="{{ opt.id }}">
+        <input type="text" name="option_text[]" class="form-control" value="{{ opt.option_text }}">
       </div>
+      {% endfor %}
     </div>
-    <div class="dash-actions">
-      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
-            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg></button>
-        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
-            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
+
+    <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
+      <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
       </div>
+      <button type="button" class="btn btn-danger"
+        onclick="confirmAction('Delete this question? This cannot be undone.',()=>deleteQuestion())">
+        Delete Question
+      </button>
     </div>
-  </header>
-
-  <div class="dash-content">
-    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
-        href="{% url 'exam_questions' exam.id %}">{{ exam.title }} — Questions</a><span class="sep">/</span>
-      <span class="current">Edit Question</span>
-    </div>
-
-    <div class="card card-pad-lg" style="max-width:720px;" data-reveal>
-      <form method="post" action="{% url 'question_edit' exam.id question.id %}">
-        {% csrf_token %}
-
-        <div class="form-group">
-          <label class="form-label" for="question_text">Question<span class="req">*</span></label>
-          <textarea id="question_text" name="question_text" class="form-control" rows="3" required>{{ question.question_text }}</textarea>
-        </div>
-
-        <div class="form-group" style="max-width:160px;">
-          <label class="form-label" for="marks">Marks<span class="req">*</span></label>
-          <input type="number" id="marks" name="marks" class="form-control" min="1" value="{{ question.marks }}" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Options<span class="req">*</span></label>
-          <p style="font-size:0.8rem; color:var(--text-muted,#6b7280); margin:-4px 0 12px;">
-            Select the radio button next to the correct option.
-          </p>
-          {% for opt in options %}
-          <div class="option-row">
-            <span class="option-key">{{ opt.option_key }}</span>
-            <input type="radio" name="correct_option" value="{{ opt.id }}" {% if opt.is_correct %}checked{% endif %} required>
-            <input type="hidden" name="option_id[]" value="{{ opt.id }}">
-            <input type="text" name="option_text[]" class="form-control" value="{{ opt.option_text }}">
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
-          <div class="flex gap-3">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
-          </div>
-          <button type="button" class="btn btn-danger"
-            onclick="confirmAction('Delete this question? This cannot be undone.',()=>deleteQuestion())">
-            Delete Question
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+  </form>
 </div>
 
 <script>

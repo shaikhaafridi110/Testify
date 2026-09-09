@@ -1,0 +1,490 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}
+Contacts — Testify Admin
+{% endblock %}
+
+{% block page_title %}Contacts{% endblock %}
+{% block page_subtitle %}Messages submitted through the public contact form.{% endblock %}
+
+{% block style %}
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.10);
+  color: #2563eb;
+  margin-bottom: var(--space-3, 12px);
+}
+.kpi-card.accent .kpi-icon { background: rgba(22, 163, 74, 0.10); color: #16a34a; }
+.kpi-card.warning .kpi-icon { background: rgba(220, 38, 38, 0.10); color: #dc2626; }
+
+/* ---------- modal (same pattern as results.html) ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.55);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4, 16px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg, #fff);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 86vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px -20px rgba(15,23,42,.45);
+}
+.modal-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg, #fff);
+  padding: var(--space-5, 20px) var(--space-5, 20px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--border, rgba(148,163,184,.2));
+  z-index: 2;
+}
+.modal-body { padding: var(--space-5, 20px); }
+
+.message-block {
+  background: rgba(37,99,235,.05);
+  border: 1px solid rgba(37,99,235,.12);
+  border-radius: 12px;
+  padding: 16px;
+  white-space: pre-wrap;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.reply-block {
+  background: rgba(22,163,74,.05);
+  border: 1px solid rgba(22,163,74,.15);
+  border-radius: 12px;
+  padding: 16px;
+  white-space: pre-wrap;
+  font-size: .9rem;
+  line-height: 1.5;
+  margin-top: var(--space-4, 16px);
+}
+
+.reply-form textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(148,163,184,.3));
+  font-family: inherit;
+  font-size: .9rem;
+}
+
+.reply-hint {
+  font-size: .78rem;
+  color: var(--muted, #64748b);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.status-toggle { border: none; cursor: pointer; }
+.status-toggle[disabled] { opacity: .6; cursor: not-allowed; pointer-events: none; }
+
+.icon-btn[disabled] { opacity: .5; cursor: not-allowed; pointer-events: none; }
+
+.btn[disabled] { opacity: .65; cursor: not-allowed; pointer-events: none; }
+.btn-spinner {
+  display: none;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 6px;
+  animation: btn-spin .7s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+.skel {
+  background: linear-gradient(90deg, rgba(148,163,184,.12), rgba(148,163,184,.22), rgba(148,163,184,.12));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.skel-line { height: 14px; margin-bottom: 10px; }
+.skel-line.short { width: 60%; }
+{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Contacts</span>
+</div>
+
+<div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ total_contacts }}">0</div>
+    <div class="kpi-lbl">Total Messages</div>
+  </div>
+
+  <div class="card kpi-card warning" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ new_contacts }}">0</div>
+    <div class="kpi-lbl">New</div>
+  </div>
+
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ read_contacts }}">0</div>
+    <div class="kpi-lbl">Read</div>
+  </div>
+
+  <div class="card kpi-card accent" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ replied_contacts }}">0</div>
+    <div class="kpi-lbl">Replied</div>
+  </div>
+</div>
+
+<form class="toolbar" method="get" action="{% url 'admin_contacts' %}">
+  <div class="search"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg><input type="text" name="q" class="form-control" placeholder="Search name, email, subject…" value="{{ search }}" />
+  </div>
+  <div class="filter"><select class="form-control select" name="status" aria-label="Filter by status"
+      onchange="this.form.submit()">
+      <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+      <option value="new" {% if status == 'new' %}selected{% endif %}>New</option>
+      <option value="read" {% if status == 'read' %}selected{% endif %}>Read</option>
+      <option value="replied" {% if status == 'replied' %}selected{% endif %}>Replied</option>
+    </select></div>
+  <button type="submit" style="display:none;" aria-hidden="true"></button>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden;" data-reveal>
+  <div class="table-wrap">
+    <table class="data" id="contacts-table">
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>Subject</th>
+          <th>Status</th>
+          <th>Received</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in contacts %}
+        <tr>
+          <td class="cell-main">
+            {{ c.name }}
+            <div class="cell-sub">{{ c.email }}</div>
+          </td>
+          <td>{{ c.subject }}</td>
+          <td>
+            <button type="button"
+              class="badge status-toggle {% if c.status == 'new' %}badge-error{% elif c.status == 'read' %}badge-warning{% else %}badge-success{% endif %}"
+              title="Click to change status"
+              onclick="toggleContactStatus(this, '{{ c.id }}','{{ c.status }}')">
+              {{ c.get_status_display }}
+            </button>
+          </td>
+          <td>{{ c.created_at|date:"d M Y, H:i" }}</td>
+          <td class="row-actions">
+            <button class="icon-btn" aria-label="View / reply" onclick="openContact({{ c.id }})">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button class="icon-btn danger" aria-label="Delete"
+              onclick="confirmAction('Delete message from {{ c.name|escapejs }}? This cannot be undone.',()=>deleteContact(this, '{{ c.id }}'))"><svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg></button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center; padding:2rem;">
+            No contact messages yet — they'll show up here as soon as someone submits the form.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if contacts.has_other_pages %}
+<div class="pagination">
+  <button class="page-btn" {% if not contacts.has_previous %}disabled{% endif %}
+    {% if contacts.has_previous %}onclick="window.location.href='?page={{ contacts.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}'"{% endif %}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </button>
+  {% for num in contacts.paginator.page_range %}
+  <button class="page-btn {% if contacts.number == num %}active{% endif %}"
+    onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}'">{{ num }}</button>
+  {% endfor %}
+  <button class="page-btn" {% if not contacts.has_next %}disabled{% endif %}
+    {% if contacts.has_next %}onclick="window.location.href='?page={{ contacts.next_page_number }}&q={{ search|urlencode }}&status={{ status }}'"{% endif %}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </button>
+</div>
+{% endif %}
+
+<!-- ---------- View / Reply modal ---------- -->
+<div class="modal-overlay" id="contact-modal" onclick="if(event.target===this)closeContact()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+    <div class="modal-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <h2 id="contact-title" style="margin:0;font-size:1.25rem;">Message</h2>
+          <p id="contact-sub" style="margin:4px 0 0;color:var(--muted,#64748b);font-size:.85rem;">Loading…</p>
+        </div>
+        <button class="icon-btn" aria-label="Close" onclick="closeContact()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" id="contact-body">
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line short"></div>
+      <div class="skel skel-line"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const contactModal = document.getElementById('contact-modal');
+  const contactBody  = document.getElementById('contact-body');
+  const contactSub   = document.getElementById('contact-sub');
+  let currentContactId = null;
+  let contactRequestInFlight = false; // guards openContact against overlapping fetches
+
+  function openContact(contactId) {
+    currentContactId = contactId;
+    contactModal.classList.add('open');
+    contactSub.textContent = 'Loading…';
+    contactBody.innerHTML =
+      '<div class="skel skel-line"></div><div class="skel skel-line short"></div><div class="skel skel-line"></div>';
+
+    fetch(`/admin/contacts/${contactId}/`, { headers: { 'Accept': 'application/json' } })
+      .then(r => r.json())
+      .then(data => renderContact(data.contact))
+      .catch(() => {
+        contactSub.textContent = '';
+        contactBody.innerHTML = '<p style="color:#dc2626;">Could not load this message.</p>';
+      });
+  }
+
+  function closeContact() {
+    contactModal.classList.remove('open');
+    currentContactId = null;
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeContact(); });
+
+  function statusBadgeClass(status) {
+    if (status === 'new') return 'badge-error';
+    if (status === 'read') return 'badge-warning';
+    return 'badge-success';
+  }
+
+  function renderContact(c) {
+    contactSub.textContent = `${c.name} <${c.email}> — ${new Date(c.created_at).toLocaleString()}`;
+
+    let replySection = '';
+    if (c.status === 'replied' && c.admin_reply) {
+      replySection = `
+        <h3 style="font-size:.9rem;margin:var(--space-4) 0 8px;">Your reply</h3>
+        <div class="reply-block">${escapeHtml(c.admin_reply)}</div>
+        <p style="font-size:.75rem;color:var(--muted,#64748b);margin-top:6px;">
+          Sent ${c.replied_at ? new Date(c.replied_at).toLocaleString() : ''} — ${escapeHtml(c.name)} was let know they're welcome to write in again if they have more questions.
+        </p>`;
+    } else {
+      replySection = `
+        <h3 style="font-size:.9rem;margin:var(--space-4) 0 8px;">Reply to ${escapeHtml(c.name)}</h3>
+        <div class="reply-form">
+          <textarea id="reply-text" placeholder="Type your reply…"></textarea>
+          <button class="btn btn-primary" id="send-reply-btn" style="margin-top:10px;" onclick="sendReply()">
+            <span class="btn-spinner"></span><span class="btn-label">Send Reply</span>
+          </button>
+          <p class="reply-hint">This will be emailed to ${escapeHtml(c.email)}. We'll also let them know they can reach out again any time if they have further questions.</p>
+        </div>`;
+    }
+
+    contactBody.innerHTML = `
+      <div style="margin-bottom:var(--space-3);">
+        <button type="button" class="badge status-toggle ${statusBadgeClass(c.status)}"
+          title="Click to change status" onclick="toggleContactStatus(this, '${c.id}','${c.status}', true)">
+          ${c.status}
+        </button>
+      </div>
+      <h3 style="font-size:.9rem;margin:0 0 8px;">${escapeHtml(c.subject)}</h3>
+      <div class="message-block">${escapeHtml(c.message)}</div>
+      ${replySection}
+    `;
+  }
+
+  // ---------- Send reply: guarded against double submits ----------
+  function setReplyButtonLoading(btn, loading) {
+    if (!btn) return;
+    btn.disabled = loading;
+    const spinner = btn.querySelector('.btn-spinner');
+    const label = btn.querySelector('.btn-label');
+    if (spinner) spinner.style.display = loading ? 'inline-block' : 'none';
+    if (label) label.textContent = loading ? 'Sending…' : 'Send Reply';
+  }
+
+  function sendReply() {
+    const btn = document.getElementById('send-reply-btn');
+    if (!btn || btn.disabled) return; // ignore repeat clicks while a request is already in flight
+
+    const textarea = document.getElementById('reply-text');
+    const text = textarea.value.trim();
+    if (!text) {
+      toast('Write a reply before sending.', { title: 'Error', type: 'error' });
+      return;
+    }
+
+    setReplyButtonLoading(btn, true);
+
+    fetch(`/admin/contacts/${currentContactId}/reply/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `admin_reply=${encodeURIComponent(text)}`
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.success) {
+          toast('Reply sent.', { title: 'Sent', type: 'success' });
+          openContact(currentContactId); // rebuilds the modal; button comes back fresh & enabled only if needed
+          setTimeout(() => window.location.reload(), 900);
+        } else {
+          setReplyButtonLoading(btn, false); // re-enable only on failure, so the user can retry
+          toast(data.error || 'Could not send reply.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => {
+        setReplyButtonLoading(btn, false);
+        toast('Could not send reply.', { title: 'Error', type: 'error' });
+      });
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])
+    );
+  }
+
+  // ---------- Delete: disable the clicked button while the request runs ----------
+  function deleteContact(btn, contactId) {
+    if (btn) btn.disabled = true;
+
+    fetch(`/admin/contacts/${contactId}/delete/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Message deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          if (btn) btn.disabled = false;
+          toast('Could not delete message.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => {
+        if (btn) btn.disabled = false;
+        toast('Could not delete message.', { title: 'Error', type: 'error' });
+      });
+  }
+
+  // ---------- Status toggle: new -> read -> replied -> new ----------
+  function nextContactStatus(current) {
+    if (current === 'new') return 'read';
+    if (current === 'read') return 'replied';
+    return 'new';
+  }
+
+  function toggleContactStatus(btn, contactId, currentStatus, fromModal) {
+    if (btn && btn.disabled) return; // guard against double clicks here too
+    setContactStatus(btn, contactId, nextContactStatus(currentStatus), fromModal);
+  }
+
+  function setContactStatus(btn, contactId, newStatus, fromModal) {
+    if (btn) btn.disabled = true;
+
+    fetch(`/admin/contacts/${contactId}/status/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `status=${encodeURIComponent(newStatus)}`
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.success) {
+          toast(`Status updated to ${data.status_display}.`, { title: 'Updated', type: 'success' });
+          if (fromModal) {
+            openContact(contactId);
+          }
+          setTimeout(() => window.location.reload(), 600);
+        } else {
+          if (btn) btn.disabled = false;
+          toast(data.error || 'Could not update status.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => {
+        if (btn) btn.disabled = false;
+        toast('Could not update status.', { title: 'Error', type: 'error' });
+      });
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

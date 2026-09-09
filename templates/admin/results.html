@@ -4,6 +4,9 @@
 Results — Testify Admin
 {% endblock %}
 
+{% block page_title %}Results{% endblock %}
+{% block page_subtitle %}Every user's exam attempts — open a breakdown or remove an attempt.{% endblock %}
+
 {% block style %}
 /* ---------- KPI cards ---------- */
 .kpi-icon {
@@ -245,6 +248,49 @@ Results — Testify Admin
   width: 100%;
 }
 
+/* ---------- skipped question styling ---------- */
+.q-row.skipped {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(100,116,139,.04),
+    rgba(100,116,139,.04) 8px,
+    rgba(100,116,139,.08) 8px,
+    rgba(100,116,139,.08) 16px
+  );
+  border: 1px dashed rgba(100,116,139,.35);
+  border-radius: 10px;
+  padding: 14px 14px;
+  opacity: .82;
+}
+.q-row.skipped:last-child { border-bottom: 1px dashed rgba(100,116,139,.35); }
+
+.q-badge.skip {
+  background: transparent;
+  border: 2px dashed rgba(100,116,139,.5);
+  color: #64748b;
+}
+
+.q-skip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .72rem;
+  font-weight: 600;
+  color: #64748b;
+  background: rgba(100,116,139,.10);
+  border: 1px solid rgba(100,116,139,.22);
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
+.q-skip-label::before {
+  content: "";
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .7;
+}
+
 /* ---------- merged exam/subject cell ---------- */
 .exam-sub { font-size: .78rem; color: var(--muted, #64748b); margin-top: 2px; }
 
@@ -255,210 +301,180 @@ Results — Testify Admin
 {% endblock %}
 
 {% block content %}
-<div class="dash-main">
-  <header class="dash-header">
-    <div class="flex items-center gap-3">
-      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg></button>
-      <div class="dash-title">
-        <h1>Results</h1>
-        <p>Every user's exam attempts — open a breakdown or remove an attempt.</p>
-      </div>
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Results</span>
+</div>
+
+<div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"></path>
+        <path d="M18 17V9M13 17V5M8 17v-3"></path>
+      </svg>
     </div>
-    <div class="dash-actions">
-      <!-- Attempts are created only when a user takes an exam, so there's no "+ Add" here on purpose. -->
-      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
-            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg></button>
-        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
-            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
-      </div>
+    <div class="kpi-num" data-count="{{ total_attempts }}">0</div>
+    <div class="kpi-lbl">Total Attempts</div>
+  </div>
+
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
     </div>
-  </header>
+    <div class="kpi-num" data-count="{{ submitted_attempts }}">0</div>
+    <div class="kpi-lbl">Submitted</div>
+  </div>
 
-  <div class="dash-content">
-    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Results</span>
+  <div class="card kpi-card accent" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
     </div>
+    <div class="kpi-num" data-count="{{ passed_attempts }}">0</div>
+    <div class="kpi-lbl">Passed</div>
+  </div>
 
-    <div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
-      <div class="card kpi-card" data-reveal>
-        <div class="kpi-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"></path>
-            <path d="M18 17V9M13 17V5M8 17v-3"></path>
-          </svg>
-        </div>
-        <div class="kpi-num" data-count="{{ total_attempts }}">0</div>
-        <div class="kpi-lbl">Total Attempts</div>
-      </div>
-
-      <div class="card kpi-card" data-reveal>
-        <div class="kpi-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-        </div>
-        <div class="kpi-num" data-count="{{ submitted_attempts }}">0</div>
-        <div class="kpi-lbl">Submitted</div>
-      </div>
-
-      <div class="card kpi-card accent" data-reveal>
-        <div class="kpi-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <div class="kpi-num" data-count="{{ passed_attempts }}">0</div>
-        <div class="kpi-lbl">Passed</div>
-      </div>
-
-      <div class="card kpi-card warning" data-reveal>
-        <div class="kpi-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </div>
-        <div class="kpi-num" data-count="{{ failed_attempts }}">0</div>
-        <div class="kpi-lbl">Failed</div>
-      </div>
+  <div class="card kpi-card warning" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
     </div>
-
-    <form class="toolbar" method="get" action="{% url 'admin_results' %}">
-      <div class="search"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg><input type="text" name="q" class="form-control" placeholder="Search by student or exam…" value="{{ search }}" />
-      </div>
-      <div class="filter"><select class="form-control select" name="status" aria-label="Filter by attempt status"
-          onchange="this.form.submit()">
-          <option value="" {% if not status %}selected{% endif %}>All statuses</option>
-          <option value="started" {% if status == 'started' %}selected{% endif %}>Started</option>
-          <option value="submitted" {% if status == 'submitted' %}selected{% endif %}>Submitted</option>
-          <option value="expired" {% if status == 'expired' %}selected{% endif %}>Expired</option>
-        </select></div>
-      <div class="filter"><select class="form-control select" name="result" aria-label="Filter by result"
-          onchange="this.form.submit()">
-          <option value="" {% if not result_status %}selected{% endif %}>All results</option>
-          <option value="pass" {% if result_status == 'pass' %}selected{% endif %}>Pass</option>
-          <option value="fail" {% if result_status == 'fail' %}selected{% endif %}>Fail</option>
-        </select></div>
-      <div class="filter"><select class="form-control select" name="subject" aria-label="Filter by subject"
-          onchange="this.form.submit()">
-          <option value="" {% if not subject %}selected{% endif %}>All subjects</option>
-          {% for subj in subjects %}
-          <option value="{{ subj }}" {% if subject == subj %}selected{% endif %}>{{ subj }}</option>
-          {% endfor %}
-        </select></div>
-      <div class="filter"><select class="form-control select" name="sort" aria-label="Sort by score"
-          onchange="this.form.submit()">
-          <option value="" {% if not sort %}selected{% endif %}>Sort: Newest first</option>
-          <option value="score_desc" {% if sort == 'score_desc' %}selected{% endif %}>Score: High to Low</option>
-          <option value="score_asc" {% if sort == 'score_asc' %}selected{% endif %}>Score: Low to High</option>
-        </select></div>
-      <button type="submit" style="display:none;" aria-hidden="true"></button>
-    </form>
-
-    <div class="card" style="padding:0;overflow:hidden;" data-reveal>
-      <div class="table-wrap">
-        <table class="data" id="results-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Exam</th>
-              <th>Score &amp; Result</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for attempt in attempts %}
-            <tr>
-              <td class="cell-main">
-                {{ attempt.user.name }}
-                <div class="cell-sub">{{ attempt.user.email }}</div>
-              </td>
-              <td>
-                {{ attempt.exam.title }}
-                <div class="exam-sub">{{ attempt.exam.subject|default:"—" }}</div>
-              </td>
-              <td>
-                <div class="score-result">
-                  <div class="score-top">
-                    <span>{{ attempt.score }} / {{ attempt.exam.total_marks }}</span>
-                    <span class="pct">{{ attempt.percentage }}%</span>
-                    {% if attempt.result_status == 'pass' %}
-                    <span class="badge badge-success">Pass</span>
-                    {% elif attempt.result_status == 'fail' %}
-                    <span class="badge badge-error">Fail</span>
-                    {% else %}
-                    <span class="badge badge-neutral">—</span>
-                    {% endif %}
-                  </div>
-                  <div class="score-bar"><span style="width: {% if attempt.exam.total_marks %}{{ attempt.percentage|floatformat:0 }}{% else %}0{% endif %}%"></span></div>
-                </div>
-              </td>
-              <td>
-                <span class="status-pill {{ attempt.status }}">{{ attempt.status }}</span>
-              </td>
-              <td class="row-actions">
-                <button class="icon-btn" aria-label="View details" onclick="openDetail({{ attempt.id }})">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </button>
-                <button class="icon-btn danger" aria-label="Delete"
-                  onclick="confirmAction('Delete this attempt by {{ attempt.user.name|escapejs }}? This cannot be undone.',()=>deleteAttempt('{{ attempt.id }}'))"><svg
-                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg></button>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5" style="text-align:center; padding:2rem;">No exam attempts found.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    {% if attempts.has_other_pages %}
-    <div class="pagination">
-      <button class="page-btn" {% if not attempts.has_previous %}disabled{% endif %}
-        {% if attempts.has_previous %}onclick="window.location.href='?page={{ attempts.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'"{% endif %}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-      {% for num in attempts.paginator.page_range %}
-      <button class="page-btn {% if attempts.number == num %}active{% endif %}"
-        onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'">{{ num }}</button>
-      {% endfor %}
-      <button class="page-btn" {% if not attempts.has_next %}disabled{% endif %}
-        {% if attempts.has_next %}onclick="window.location.href='?page={{ attempts.next_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'"{% endif %}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-    </div>
-    {% endif %}
+    <div class="kpi-num" data-count="{{ failed_attempts }}">0</div>
+    <div class="kpi-lbl">Failed</div>
   </div>
 </div>
+
+<form class="toolbar" method="get" action="{% url 'admin_results' %}">
+  <div class="search"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg><input type="text" name="q" class="form-control" placeholder="Search by student or exam…" value="{{ search }}" />
+  </div>
+  <div class="filter"><select class="form-control select" name="status" aria-label="Filter by attempt status"
+      onchange="this.form.submit()">
+      <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+      <option value="started" {% if status == 'started' %}selected{% endif %}>Started</option>
+      <option value="submitted" {% if status == 'submitted' %}selected{% endif %}>Submitted</option>
+      <option value="expired" {% if status == 'expired' %}selected{% endif %}>Expired</option>
+    </select></div>
+  <div class="filter"><select class="form-control select" name="result" aria-label="Filter by result"
+      onchange="this.form.submit()">
+      <option value="" {% if not result_status %}selected{% endif %}>All results</option>
+      <option value="pass" {% if result_status == 'pass' %}selected{% endif %}>Pass</option>
+      <option value="fail" {% if result_status == 'fail' %}selected{% endif %}>Fail</option>
+    </select></div>
+  <div class="filter"><select class="form-control select" name="subject" aria-label="Filter by subject"
+      onchange="this.form.submit()">
+      <option value="" {% if not subject %}selected{% endif %}>All subjects</option>
+      {% for subj in subjects %}
+      <option value="{{ subj }}" {% if subject == subj %}selected{% endif %}>{{ subj }}</option>
+      {% endfor %}
+    </select></div>
+  <div class="filter"><select class="form-control select" name="sort" aria-label="Sort by score"
+      onchange="this.form.submit()">
+      <option value="" {% if not sort %}selected{% endif %}>Sort: Newest first</option>
+      <option value="score_desc" {% if sort == 'score_desc' %}selected{% endif %}>Score: High to Low</option>
+      <option value="score_asc" {% if sort == 'score_asc' %}selected{% endif %}>Score: Low to High</option>
+    </select></div>
+  <button type="submit" style="display:none;" aria-hidden="true"></button>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden;" data-reveal>
+  <div class="table-wrap">
+    <table class="data" id="results-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Exam</th>
+          <th>Score &amp; Result</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for attempt in attempts %}
+        <tr>
+          <td class="cell-main">
+            {{ attempt.user.name }}
+            <div class="cell-sub">{{ attempt.user.email }}</div>
+          </td>
+          <td>
+            {{ attempt.exam.title }}
+            <div class="exam-sub">{{ attempt.exam.subject|default:"—" }}</div>
+          </td>
+          <td>
+            <div class="score-result">
+              <div class="score-top">
+                <span>{{ attempt.score }} / {{ attempt.exam.total_marks }}</span>
+                <span class="pct">{{ attempt.percentage }}%</span>
+                {% if attempt.result_status == 'pass' %}
+                <span class="badge badge-success">Pass</span>
+                {% elif attempt.result_status == 'fail' %}
+                <span class="badge badge-error">Fail</span>
+                {% else %}
+                <span class="badge badge-neutral">—</span>
+                {% endif %}
+              </div>
+              <div class="score-bar"><span style="width: {% if attempt.exam.total_marks %}{{ attempt.percentage|floatformat:0 }}{% else %}0{% endif %}%"></span></div>
+            </div>
+          </td>
+          <td>
+            <span class="status-pill {{ attempt.status }}">{{ attempt.status }}</span>
+          </td>
+          <td class="row-actions">
+            <button class="icon-btn" aria-label="View details" onclick="openDetail({{ attempt.id }})">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button class="icon-btn danger" aria-label="Delete"
+              onclick="confirmAction('Delete this attempt by {{ attempt.user.name|escapejs }}? This cannot be undone.',()=>deleteAttempt('{{ attempt.id }}'))"><svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg></button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center; padding:2rem;">No exam attempts found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if attempts.has_other_pages %}
+<div class="pagination">
+  <button class="page-btn" {% if not attempts.has_previous %}disabled{% endif %}
+    {% if attempts.has_previous %}onclick="window.location.href='?page={{ attempts.previous_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'"{% endif %}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+  {% for num in attempts.paginator.page_range %}
+  <button class="page-btn {% if attempts.number == num %}active{% endif %}"
+    onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'">{{ num }}</button>
+  {% endfor %}
+  <button class="page-btn" {% if not attempts.has_next %}disabled{% endif %}
+    {% if attempts.has_next %}onclick="window.location.href='?page={{ attempts.next_page_number }}&q={{ search|urlencode }}&status={{ status }}&result={{ result_status }}&subject={{ subject|urlencode }}&sort={{ sort }}'"{% endif %}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </button>
+</div>
+{% endif %}
 
 <!-- ---------- Detail modal ---------- -->
 <div class="modal-overlay" id="detail-modal" onclick="if(event.target===this)closeDetail()">
@@ -539,31 +555,32 @@ Results — Testify Admin
       rows = '<p style="color:var(--muted,#64748b);">No recorded answers for this attempt.</p>';
     } else {
       a.answers.forEach((ans, i) => {
-        const cls = ans.is_correct ? 'ok' : (ans.selected_option === null ? 'skip' : 'no');
-        const glyph = ans.is_correct ? '✓' : (ans.selected_option === null ? '—' : '✕');
+  const isSkipped = ans.selected_option === null;
+  const cls = ans.is_correct ? 'ok' : (isSkipped ? 'skip' : 'no');
+  const glyph = ans.is_correct ? '✓' : (isSkipped ? '—' : '✕');
 
-        let opts = '';
-        if (ans.selected_option && ans.is_correct) {
-          opts = `<span class="q-opt selected-correct">${ans.selected_option}</span>`;
-        } else if (ans.selected_option && !ans.is_correct) {
-          opts = `<span class="q-opt selected-wrong">${ans.selected_option}</span>`;
-          if (ans.correct_option) {
-            opts += `<span class="q-opt correct-answer">Correct: ${ans.correct_option}</span>`;
-          }
-        } else if (ans.correct_option) {
-          opts = `<span class="q-opt correct-answer">Correct: ${ans.correct_option}</span>`;
-        }
+  let opts = '';
+  if (ans.selected_option && ans.is_correct) {
+    opts = `<span class="q-opt selected-correct">${ans.selected_option}</span>`;
+  } else if (ans.selected_option && !ans.is_correct) {
+    opts = `<span class="q-opt selected-wrong">${ans.selected_option}</span>`;
+    if (ans.correct_option) {
+      opts += `<span class="q-opt correct-answer">Correct: ${ans.correct_option}</span>`;
+    }
+  } else if (ans.correct_option) {
+    opts = `<span class="q-opt correct-answer">Correct: ${ans.correct_option}</span>`;
+  }
 
-        rows += `
-          <div class="q-row">
-            <div class="q-badge ${cls}">${glyph}</div>
-            <div style="flex:1;">
-              <div style="font-weight:600;">Q${ans.question_order ?? i + 1}. ${escapeHtml(ans.question_text)}</div>
-              <div style="font-size:.72rem;color:var(--muted,#64748b);margin-top:2px;">${ans.marks} mark${ans.marks === 1 ? '' : 's'}</div>
-              <div class="q-options">${opts}</div>
-            </div>
-          </div>`;
-      });
+  rows += `
+    <div class="q-row${isSkipped ? ' skipped' : ''}">
+      <div class="q-badge ${cls}">${glyph}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;">Q${ans.question_order ?? i + 1}. ${escapeHtml(ans.question_text)}${isSkipped ? '<span class="q-skip-label">Skipped</span>' : ''}</div>
+        <div style="font-size:.72rem;color:var(--muted,#64748b);margin-top:2px;">${ans.marks} mark${ans.marks === 1 ? '' : 's'}</div>
+        <div class="q-options">${opts}</div>
+      </div>
+    </div>`;
+});
     }
 
     detailBody.innerHTML = `

@@ -4,6 +4,9 @@
 Add Questions — {{ exam.title }} — Testify Admin
 {% endblock %}
 
+{% block page_title %}Add Questions{% endblock %}
+{% block page_subtitle %}Add to {{ exam.title }} — manually, or import a batch from CSV or PDF.{% endblock %}
+
 {% block style %}
 .option-row {
   display: flex;
@@ -131,202 +134,178 @@ Add Questions — {{ exam.title }} — Testify Admin
 {% endblock %}
 
 {% block content %}
-<div class="dash-main">
-  <header class="dash-header">
-    <div class="flex items-center gap-3">
-      <button class="theme-toggle sidebar-toggle" aria-label="Open sidebar"><svg width="20" height="20"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg></button>
-      <div class="dash-title">
-        <h1>Add Questions</h1>
-        <p>Add to {{ exam.title }} — manually, or import a batch from CSV or PDF.</p>
-      </div>
-    </div>
-    <div class="dash-actions">
-      <div class="dropdown"><button class="user-chip dropdown-trigger"><span class="avatar">AD</span><span
-            class="name">Admin</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg></button>
-        <div class="dropdown-menu"><a href="profile.html" class="dropdown-item">Profile</a><a href="settings.html"
-            class="dropdown-item">Settings</a><a href="../login.html" class="dropdown-item">Sign out</a></div>
-      </div>
-    </div>
-  </header>
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
+    href="{% url 'exam_questions' exam.id %}">{{ exam.title }} — Questions</a><span class="sep">/</span>
+  <span class="current">Add Questions</span>
+</div>
 
-  <div class="dash-content">
-    <div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><a
-        href="{% url 'exam_questions' exam.id %}">{{ exam.title }} — Questions</a><span class="sep">/</span>
-      <span class="current">Add Questions</span>
-    </div>
+<div class="card card-pad-lg" style="max-width:760px;" data-reveal>
 
-    <div class="card card-pad-lg" style="max-width:760px;" data-reveal>
+  <div class="mcq-tabs" role="tablist">
+    <button type="button" class="mcq-tab-btn active" data-tab="manual">✏️ Manual</button>
+    <button type="button" class="mcq-tab-btn" data-tab="csv">📄 CSV</button>
+    <button type="button" class="mcq-tab-btn" data-tab="pdf">📕 PDF</button>
+  </div>
 
-      <div class="mcq-tabs" role="tablist">
-        <button type="button" class="mcq-tab-btn active" data-tab="manual">✏️ Manual</button>
-        <button type="button" class="mcq-tab-btn" data-tab="csv">📄 CSV</button>
-        <button type="button" class="mcq-tab-btn" data-tab="pdf">📕 PDF</button>
+  <!-- ===================== MANUAL ===================== -->
+  <div class="mcq-tab-panel active" data-panel="manual">
+    <form method="post" action="{% url 'question_add_manual' exam.id %}" id="mcq-form">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label class="form-label" for="question_text">Question<span class="req">*</span></label>
+        <textarea id="question_text" name="question_text" class="form-control" rows="3" required
+          placeholder="e.g. What is the capital of France?"></textarea>
       </div>
 
-      <!-- ===================== MANUAL ===================== -->
-      <div class="mcq-tab-panel active" data-panel="manual">
-        <form method="post" action="{% url 'question_add_manual' exam.id %}" id="mcq-form">
-          {% csrf_token %}
-
-          <div class="form-group">
-            <label class="form-label" for="question_text">Question<span class="req">*</span></label>
-            <textarea id="question_text" name="question_text" class="form-control" rows="3" required
-              placeholder="e.g. What is the capital of France?"></textarea>
-          </div>
-
-          <div class="form-group" style="max-width:160px;">
-            <label class="form-label" for="marks">Marks<span class="req">*</span></label>
-            <input type="number" id="marks" name="marks" class="form-control" min="1" value="1" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Options<span class="req">*</span></label>
-            <p style="font-size:0.8rem; color:var(--text-muted,#6b7280); margin:-4px 0 12px;">
-              Fill in at least 2 options and select the radio button next to the correct one.
-            </p>
-            <div id="options-wrap">
-              <div class="option-row">
-                <span class="option-key">A</span>
-                <input type="radio" name="correct_option" value="0" required>
-                <input type="text" name="option_text[]" class="form-control" placeholder="Option A">
-              </div>
-              <div class="option-row">
-                <span class="option-key">B</span>
-                <input type="radio" name="correct_option" value="1">
-                <input type="text" name="option_text[]" class="form-control" placeholder="Option B">
-              </div>
-              <div class="option-row">
-                <span class="option-key">C</span>
-                <input type="radio" name="correct_option" value="2">
-                <input type="text" name="option_text[]" class="form-control" placeholder="Option C">
-              </div>
-              <div class="option-row">
-                <span class="option-key">D</span>
-                <input type="radio" name="correct_option" value="3">
-                <input type="text" name="option_text[]" class="form-control" placeholder="Option D">
-              </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="add-option-btn" style="margin-top:6px;">+ Add Option</button>
-          </div>
-
-          <div class="flex gap-3" style="margin-top: var(--space-5);">
-            <button type="submit" class="btn btn-primary">Save Question</button>
-            <button type="submit" name="save_add_another" value="1" class="btn btn-secondary">Save &amp; Add Another</button>
-            <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Done</a>
-          </div>
-        </form>
-
-        <div class="example-box">
-          <h4>Example</h4>
-          <p style="margin:0;"><strong>Question:</strong> What is the capital of France? &middot; <strong>Marks:</strong> 2</p>
-          <p style="margin:6px 0 0;">
-            A. London&nbsp;&nbsp; B. <strong style="color:#16a34a;">Paris ✓</strong>&nbsp;&nbsp; C. Berlin&nbsp;&nbsp; D. Madrid
-          </p>
-        </div>
+      <div class="form-group" style="max-width:160px;">
+        <label class="form-label" for="marks">Marks<span class="req">*</span></label>
+      <input type="number" id="marks" name="marks" class="form-control" min="1" max="{{ marks_remaining }}" value="1" required>
+<p style="font-size:0.78rem;color:var(--text-muted,#6b7280);margin-top:4px;">
+  {{ marks_remaining }} mark{{ marks_remaining|pluralize }} left for this exam.
+</p>
       </div>
 
-      <!-- ===================== CSV ===================== -->
-      <div class="mcq-tab-panel" data-panel="csv">
-        <form method="post" action="{% url 'question_add_csv' exam.id %}" enctype="multipart/form-data">
-          {% csrf_token %}
-
-          <div class="upload-drop">
-            <p style="margin:0 0 10px; color:var(--text-muted,#6b7280);">Choose a .csv file to import</p>
-            <input type="file" id="csv_file" name="csv_file" class="form-control" accept=".csv" required>
+      <div class="form-group">
+        <label class="form-label">Options<span class="req">*</span></label>
+        <p style="font-size:0.8rem; color:var(--text-muted,#6b7280); margin:-4px 0 12px;">
+          Fill in at least 2 options and select the radio button next to the correct one.
+        </p>
+        <div id="options-wrap">
+          <div class="option-row">
+            <span class="option-key">A</span>
+            <input type="radio" name="correct_option" value="0" required>
+            <input type="text" name="option_text[]" class="form-control" placeholder="Option A">
           </div>
-
-          <div class="flex gap-3" style="margin-top: var(--space-5);">
-            <button type="submit" class="btn btn-primary">Import Questions</button>
-            <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
-            <a id="download-sample-csv" href="#" class="btn btn-secondary" download="sample_questions.csv">Download Sample CSV</a>
+          <div class="option-row">
+            <span class="option-key">B</span>
+            <input type="radio" name="correct_option" value="1">
+            <input type="text" name="option_text[]" class="form-control" placeholder="Option B">
           </div>
-        </form>
-
-        <div class="example-box">
-          <h4>Required columns</h4>
-          <p style="font-size:0.82rem; color:var(--text-muted,#6b7280); margin:0 0 12px;">
-            <code>question_text</code>, <code>marks</code>, <code>option_a</code>, <code>option_b</code>,
-            <code>correct_option</code> are required. <code>option_c</code>–<code>option_f</code> are optional.
-            <code>correct_option</code> must be the letter (A–F) of the correct column for that row.
-          </p>
-          <h4>Example</h4>
-          <div class="table-wrap">
-            <table class="example-table">
-              <thead>
-                <tr>
-                  <th>question_text</th>
-                  <th>marks</th>
-                  <th>option_a</th>
-                  <th>option_b</th>
-                  <th>option_c</th>
-                  <th>option_d</th>
-                  <th>correct_option</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>What is the capital of France?</td>
-                  <td>2</td>
-                  <td>London</td>
-                  <td>Paris</td>
-                  <td>Berlin</td>
-                  <td>Madrid</td>
-                  <td>B</td>
-                </tr>
-                <tr>
-                  <td>Which planet is known as the Red Planet?</td>
-                  <td>1</td>
-                  <td>Venus</td>
-                  <td>Mars</td>
-                  <td>Jupiter</td>
-                  <td>Saturn</td>
-                  <td>B</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="option-row">
+            <span class="option-key">C</span>
+            <input type="radio" name="correct_option" value="2">
+            <input type="text" name="option_text[]" class="form-control" placeholder="Option C">
+          </div>
+          <div class="option-row">
+            <span class="option-key">D</span>
+            <input type="radio" name="correct_option" value="3">
+            <input type="text" name="option_text[]" class="form-control" placeholder="Option D">
           </div>
         </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="add-option-btn" style="margin-top:6px;">+ Add Option</button>
       </div>
 
-      <!-- ===================== PDF ===================== -->
-      <div class="mcq-tab-panel" data-panel="pdf">
-        <form method="post" action="{% url 'question_add_pdf' exam.id %}" enctype="multipart/form-data">
-          {% csrf_token %}
+      <div class="flex gap-3" style="margin-top: var(--space-5);">
+        <button type="submit" class="btn btn-primary">Save Question</button>
+        <button type="submit" name="save_add_another" value="1" class="btn btn-secondary">Save &amp; Add Another</button>
+        <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Done</a>
+      </div>
+    </form>
 
-          <div class="upload-drop">
-            <p style="margin:0 0 10px; color:var(--text-muted,#6b7280);">Choose a .pdf file to import</p>
-            <input type="file" id="pdf_file" name="pdf_file" class="form-control" accept="application/pdf" required>
-          </div>
+    <div class="example-box">
+      <h4>Example</h4>
+      <p style="margin:0;"><strong>Question:</strong> What is the capital of France? &middot; <strong>Marks:</strong> 2</p>
+      <p style="margin:6px 0 0;">
+        A. London&nbsp;&nbsp; B. <strong style="color:#16a34a;">Paris ✓</strong>&nbsp;&nbsp; C. Berlin&nbsp;&nbsp; D. Madrid
+      </p>
+    </div>
+  </div>
 
-          <div class="flex gap-3" style="margin-top: var(--space-5);">
-            <button type="submit" class="btn btn-primary">Import Questions</button>
-            <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
-            <a id="download-sample-pdf" href="#" class="btn btn-secondary" download="sample_questions.txt">Download Sample Text</a>
-          </div>
-        </form>
+  <!-- ===================== CSV ===================== -->
+  <div class="mcq-tab-panel" data-panel="csv">
+    <form method="post" action="{% url 'question_add_csv' exam.id %}" enctype="multipart/form-data">
+      {% csrf_token %}
 
-        <div class="example-box">
-          <h4>Required format</h4>
-          <p style="font-size:0.82rem; color:var(--text-muted,#6b7280); margin:0;">
-            The PDF must contain selectable text (not a scanned image) laid out like this — each question separated
-            by a blank line:
-          </p>
-          <ul class="rule-list">
-            <li>Start each question with a number, e.g. <code>Q1.</code> or <code>1)</code></li>
-            <li>Optionally add marks in square brackets at the end of the question line, e.g. <code>[2]</code> (defaults to 1)</li>
-            <li>List options as <code>A)</code>, <code>B)</code>, <code>C)</code>, <code>D)</code> ...</li>
-            <li>Mark the correct option with a trailing asterisk <code>*</code></li>
-          </ul>
-          <h4 style="margin-top:14px;">Example</h4>
-          <pre class="example-pre">Q1. What is the capital of France? [2]
+      <div class="upload-drop">
+        <p style="margin:0 0 10px; color:var(--text-muted,#6b7280);">Choose a .csv file to import</p>
+        <input type="file" id="csv_file" name="csv_file" class="form-control" accept=".csv" required>
+      </div>
+
+      <div class="flex gap-3" style="margin-top: var(--space-5);">
+        <button type="submit" class="btn btn-primary">Import Questions</button>
+        <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
+        <a id="download-sample-csv" href="#" class="btn btn-secondary" download="sample_questions.csv">Download Sample CSV</a>
+      </div>
+    </form>
+
+    <div class="example-box">
+      <h4>Required columns</h4>
+      <p style="font-size:0.82rem; color:var(--text-muted,#6b7280); margin:0 0 12px;">
+        <code>question_text</code>, <code>marks</code>, <code>option_a</code>, <code>option_b</code>,
+        <code>correct_option</code> are required. <code>option_c</code>–<code>option_f</code> are optional.
+        <code>correct_option</code> must be the letter (A–F) of the correct column for that row.
+      </p>
+      <h4>Example</h4>
+      <div class="table-wrap">
+        <table class="example-table">
+          <thead>
+            <tr>
+              <th>question_text</th>
+              <th>marks</th>
+              <th>option_a</th>
+              <th>option_b</th>
+              <th>option_c</th>
+              <th>option_d</th>
+              <th>correct_option</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>What is the capital of France?</td>
+              <td>2</td>
+              <td>London</td>
+              <td>Paris</td>
+              <td>Berlin</td>
+              <td>Madrid</td>
+              <td>B</td>
+            </tr>
+            <tr>
+              <td>Which planet is known as the Red Planet?</td>
+              <td>1</td>
+              <td>Venus</td>
+              <td>Mars</td>
+              <td>Jupiter</td>
+              <td>Saturn</td>
+              <td>B</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PDF ===================== -->
+  <div class="mcq-tab-panel" data-panel="pdf">
+    <form method="post" action="{% url 'question_add_pdf' exam.id %}" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="upload-drop">
+        <p style="margin:0 0 10px; color:var(--text-muted,#6b7280);">Choose a .pdf file to import</p>
+        <input type="file" id="pdf_file" name="pdf_file" class="form-control" accept="application/pdf" required>
+      </div>
+
+      <div class="flex gap-3" style="margin-top: var(--space-5);">
+        <button type="submit" class="btn btn-primary">Import Questions</button>
+        <a href="{% url 'exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
+        <a id="download-sample-pdf" href="#" class="btn btn-secondary" download="sample_questions.txt">Download Sample Text</a>
+      </div>
+    </form>
+
+    <div class="example-box">
+      <h4>Required format</h4>
+      <p style="font-size:0.82rem; color:var(--text-muted,#6b7280); margin:0;">
+        The PDF must contain selectable text (not a scanned image) laid out like this — each question separated
+        by a blank line:
+      </p>
+      <ul class="rule-list">
+        <li>Start each question with a number, e.g. <code>Q1.</code> or <code>1)</code></li>
+        <li>Optionally add marks in square brackets at the end of the question line, e.g. <code>[2]</code> (defaults to 1)</li>
+        <li>List options as <code>A)</code>, <code>B)</code>, <code>C)</code>, <code>D)</code> ...</li>
+        <li>Mark the correct option with a trailing asterisk <code>*</code></li>
+      </ul>
+      <h4 style="margin-top:14px;">Example</h4>
+      <pre class="example-pre">Q1. What is the capital of France? [2]
 A) London
 B) Paris <span class="ok">*</span>
 C) Berlin
@@ -337,15 +316,13 @@ A) Venus
 B) Mars <span class="ok">*</span>
 C) Jupiter
 D) Saturn</pre>
-          <p style="font-size:0.78rem; color:var(--text-muted,#6b7280); margin:10px 0 0;">
-            Tip: type this into any Word/Docs file using the exact layout above, then "Print → Save as PDF" to
-            produce an importable file. You can download the sample text above as a starting point.
-          </p>
-        </div>
-      </div>
-
+      <p style="font-size:0.78rem; color:var(--text-muted,#6b7280); margin:10px 0 0;">
+        Tip: type this into any Word/Docs file using the exact layout above, then "Print → Save as PDF" to
+        produce an importable file. You can download the sample text above as a starting point.
+      </p>
     </div>
   </div>
+
 </div>
 
 <script>
@@ -366,8 +343,6 @@ D) Saturn</pre>
       btn.addEventListener('click', () => activateTab(btn.dataset.tab));
     });
 
-    // Open on whichever tab is in ?tab=... (server redirects here after a
-    // validation error so the right tab reopens with the toast showing).
     const params = new URLSearchParams(window.location.search);
     const initialTab = params.get('tab');
     if (initialTab && ['manual', 'csv', 'pdf'].includes(initialTab)) {

@@ -59,6 +59,17 @@ class User(AbstractUser):
         null=True,
         blank=True
     )
+    # ==============================
+    # GOOGLE AUTHENTICATION
+    # ==============================
+
+    google_id = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True
+    )
+
 
     # ==============================
     # USER ROLE

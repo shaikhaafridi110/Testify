@@ -44,4 +44,11 @@ urlpatterns = [
      path('results/', views.admin_results, name='admin_results'),
     path('results/<int:attempt_id>/', views.admin_result_view, name='admin_result_view'),
     path('results/<int:attempt_id>/delete/', views.admin_result_delete, name='admin_result_delete'),
+
+
+   path('contacts/', views.admin_contacts, name='admin_contacts'),
+    path('contacts/<int:contact_id>/', views.admin_contact_view, name='admin_contact_view'),
+    path('contacts/<int:contact_id>/status/', views.admin_contact_status, name='admin_contact_status'),
+    path('contacts/<int:contact_id>/reply/', views.admin_contact_reply, name='admin_contact_reply'),
+    path('contacts/<int:contact_id>/delete/', views.admin_contact_delete, name='admin_contact_delete'),
 ]
