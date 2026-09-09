@@ -729,3 +729,177 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.subject}"
+
+
+
+
+####
+#user notification
+####
+class Notification(models.Model):
+
+    NOTIFICATION_TYPE_CHOICES = [
+        ('exam', 'Exam'),
+        ('result', 'Result'),
+        ('class', 'Class'),
+        ('system', 'System'),
+    ]
+
+    title = models.CharField(max_length=150)
+
+    message = models.TextField()
+
+    notification_type = models.CharField(
+        max_length=30,
+        choices=NOTIFICATION_TYPE_CHOICES,
+        default='system'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'notifications'
+
+    def __str__(self):
+        return self.title
+
+
+class UserNotification(models.Model):
+
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('read', 'Read'),
+        ('archived', 'Archived'),
+    ]
+
+    notification = models.ForeignKey(
+        Notification,
+        on_delete=models.CASCADE,
+        related_name='recipients'
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='user_notifications'
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='new'
+    )
+
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_notifications'
+
+    def __str__(self):
+        return f"{self.user.name} - {self.notification.title}"
+
+
+# ======================================================================================
+# Exam Result Files
+# ======================================================================================
+
+class ExamResultFile(models.Model):
+
+    STATUS_CHOICES = [
+        ('uploaded', 'Uploaded'),
+        ('processed', 'Processed'),
+        ('generated', 'Generated'),
+    ]
+
+    # ==============================
+    # RELATIONSHIPS
+    # ==============================
+
+    exam = models.ForeignKey(
+        'Exam',
+        on_delete=models.CASCADE,
+        related_name='result_files'
+    )
+
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='result_files'
+    )
+
+    class_obj = models.ForeignKey(
+        'Class',
+        on_delete=models.CASCADE,
+        related_name='result_files'
+    )
+
+    # ==============================
+    # RESULT FILE INFORMATION
+    # ==============================
+
+    file_name = models.CharField(
+        max_length=255
+    )
+
+    file_path = models.CharField(
+        max_length=255
+    )
+
+    backup_file_path = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True
+    )
+
+    total_students = models.IntegerField(
+        default=0
+    )
+
+    # ==============================
+    # RESULT FILE STATUS
+    # ==============================
+
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='uploaded'
+    )
+
+    # ==============================
+    # TIMESTAMPS
+    # ==============================
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    # ==============================
+    # DATABASE TABLE
+    # ==============================
+
+    class Meta:
+        db_table = 'exam_result_files'
+
+    # ==============================
+    # STRING REPRESENTATION
+    # ==============================
+
+    def __str__(self):
+        return self.file_name
