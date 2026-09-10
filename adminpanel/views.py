@@ -718,6 +718,7 @@ def admin_exam_add(request):
             end_datetime=end_datetime,
             status=status,
         )
+        _notify_exam_status(exam, old_status=None)
  
         if is_ajax:
             return JsonResponse({
@@ -744,7 +745,7 @@ def admin_exam_edit(request, exam_id):
  
     if request.method == 'POST':
         errors = {}
- 
+        old_status = exam.status 
         new_title = exam.title
         new_subject = exam.subject
         new_description = exam.description
@@ -832,6 +833,7 @@ def admin_exam_edit(request, exam_id):
         exam.end_datetime = new_end
         exam.status = new_status
         exam.save()
+        _notify_exam_status(exam, old_status=old_status)
  
         if is_ajax:
             return JsonResponse({
@@ -1677,3 +1679,371 @@ def admin_contact_delete(request, contact_id):
     contact.delete()
 
     return JsonResponse({'success': True})
+
+
+
+
+
+#====================================================
+# notifications — admin create / send / view / delete
+#====================================================
+from .models import Notification, UserNotification  # add to your model imports at top
+
+
+def admin_notifications(request):
+    notifications_qs = Notification.objects.annotate(
+        recipient_count=Count('recipients'),
+        read_count=Count('recipients', filter=Q(recipients__status__in=['read', 'archived'])),
+    ).order_by('-created_at')
+
+    # ==============================
+    # DASHBOARD COUNTS
+    # ==============================
+
+    total_notifications = Notification.objects.count()
+    exam_notifications = Notification.objects.filter(notification_type='exam').count()
+    result_notifications = Notification.objects.filter(notification_type='result').count()
+    class_notifications = Notification.objects.filter(notification_type='class').count()
+    system_notifications = Notification.objects.filter(notification_type='system').count()
+
+    # ---- search ----
+    search = request.GET.get('q', '').strip()
+    if search:
+        notifications_qs = notifications_qs.filter(
+            Q(title__icontains=search) |
+            Q(message__icontains=search)
+        )
+
+    # ---- filter by type ----
+    notification_type = request.GET.get('type', '').strip()
+    if notification_type:
+        notifications_qs = notifications_qs.filter(notification_type=notification_type)
+
+    # ---- pagination ----
+    paginator = Paginator(notifications_qs, 10)
+    page_number = request.GET.get('page', 1)
+    notifications = paginator.get_page(page_number)
+
+    context = {
+        'notifications': notifications,
+        'search': search,
+        'notification_type': notification_type,
+
+        'total_notifications': total_notifications,
+        'exam_notifications': exam_notifications,
+        'result_notifications': result_notifications,
+        'class_notifications': class_notifications,
+        'system_notifications': system_notifications,
+    }
+    return render(request, 'admin/notifications.html', context)
+
+
+def admin_notification_add(request):
+    """
+    Creates a Notification and fans it out to the chosen audience by
+    bulk-creating one UserNotification per recipient. Audience options:
+      - 'all'      : every user + teacher
+      - 'user'     : role='user' only
+      - 'teacher'  : role='teacher' only
+      - 'specific' : a hand-picked list of user ids (user_ids[] in POST)
+    """
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+    if request.method == 'POST':
+        errors = {}
+
+        title = request.POST.get('title', '').strip()
+        message = request.POST.get('message', '').strip()
+        notification_type = request.POST.get('notification_type', 'system').strip()
+        audience = request.POST.get('audience', '').strip()
+        user_ids = request.POST.getlist('user_ids[]')
+
+        if not title:
+            errors['title'] = 'Title is required.'
+        if not message:
+            errors['message'] = 'Message is required.'
+        if notification_type not in dict(Notification.NOTIFICATION_TYPE_CHOICES):
+            errors['notification_type'] = 'Invalid notification type.'
+        if audience not in ('all', 'user', 'teacher', 'specific'):
+            errors['audience'] = 'Select who this notification goes to.'
+        if audience == 'specific' and not user_ids:
+            errors['user_ids'] = 'Pick at least one recipient.'
+
+        if errors:
+            first_error = next(iter(errors.values()))
+            if is_ajax:
+                return JsonResponse({'error': first_error, 'errors': errors}, status=400)
+            messages.error(request, first_error)
+            return redirect('admin_notification_add')
+
+        # ---- resolve recipients ----
+        if audience == 'all':
+            recipients = User.objects.filter(role__in=['user', 'teacher'])
+        elif audience == 'specific':
+            recipients = User.objects.filter(id__in=user_ids)
+        else:  # 'user' or 'teacher'
+            recipients = User.objects.filter(role=audience)
+
+        recipient_ids = list(recipients.values_list('id', flat=True))
+
+        if not recipient_ids:
+            error = 'No matching users found for that audience.'
+            if is_ajax:
+                return JsonResponse({'error': error}, status=400)
+            messages.error(request, error)
+            return redirect('admin_notification_add')
+
+        notification = Notification.objects.create(
+            title=title,
+            message=message,
+            notification_type=notification_type,
+        )
+
+        UserNotification.objects.bulk_create([
+            UserNotification(notification=notification, user_id=uid)
+            for uid in recipient_ids
+        ])
+
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'notification_id': notification.id,
+                'recipient_count': len(recipient_ids),
+            })
+
+        messages.success(request, f'Notification sent to {len(recipient_ids)} user(s).')
+        return redirect('admin_notifications')
+
+    # ---- GET: render the form ----
+    # Kept lightweight -- only what the "specific users" picker needs.
+    users_for_picker = User.objects.filter(
+        role__in=['user', 'teacher']
+    ).values('id', 'name', 'email', 'role').order_by('name')
+
+    return render(request, 'admin/notification_add.html', {
+        'users_for_picker': list(users_for_picker),
+    })
+
+
+def admin_notification_view(request, notification_id):
+    """Read-only detail: the notification plus its recipient breakdown.
+    Returned as JSON so the notifications page can render it in a modal."""
+    notification = get_object_or_404(Notification, id=notification_id)
+
+    recipients_qs = UserNotification.objects.filter(
+        notification=notification
+    ).select_related('user').order_by('-created_at')
+
+    total_recipients = recipients_qs.count()
+    read_count = recipients_qs.filter(status__in=['read', 'archived']).count()
+    unread_count = total_recipients - read_count
+
+    recipient_rows = [
+        {
+            'user_id': r.user.id,
+            'user_name': r.user.name,
+            'user_email': r.user.email,
+            'status': r.status,
+            'read_at': r.read_at.isoformat() if r.read_at else None,
+        }
+        for r in recipients_qs[:100]  # cap payload size on broad sends
+    ]
+
+    payload = {
+        'id': notification.id,
+        'title': notification.title,
+        'message': notification.message,
+        'notification_type': notification.notification_type,
+        'notification_type_display': notification.get_notification_type_display(),
+        'created_at': notification.created_at.isoformat(),
+        'total_recipients': total_recipients,
+        'read_count': read_count,
+        'unread_count': unread_count,
+        'recipients': recipient_rows,
+        'recipients_truncated': total_recipients > 100,
+    }
+
+    return JsonResponse({'success': True, 'notification': payload})
+
+
+def admin_notification_delete(request, notification_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+    notification = get_object_or_404(Notification, id=notification_id)
+    notification.delete()  # cascades to UserNotification rows
+
+    return JsonResponse({'success': True})
+
+def _notify_exam_status(exam, old_status=None):
+    """
+    Fires a Notification (fanned out to UserNotification rows) whenever
+    an exam's status changes to 'published' or 'closed'. Draft never
+    notifies -- nothing for students to act on yet.
+    """
+    if exam.status == old_status or exam.status not in ('published', 'closed'):
+        return
+
+    status_copy = {
+        'published': (
+            'exam',
+            f'New exam available: {exam.title}',
+            f'"{exam.title}" ({exam.subject}) is now open. Duration: '
+            f'{exam.duration_minutes} min, total marks: {exam.total_marks}.',
+        ),
+        'closed': (
+            'exam',
+            f'Exam closed: {exam.title}',
+            f'"{exam.title}" ({exam.subject}) is now closed. Check the results page '
+            f'once it has been graded.',
+        ),
+    }
+
+    notification_type, title, message = status_copy[exam.status]
+
+    recipient_ids = list(User.objects.filter(role='user').values_list('id', flat=True))
+    if not recipient_ids:
+        return
+
+    notification = Notification.objects.create(
+        title=title,
+        message=message,
+        notification_type=notification_type,
+    )
+    UserNotification.objects.bulk_create([
+        UserNotification(notification=notification, user_id=uid)
+        for uid in recipient_ids
+    ])
+
+
+#====================================================
+# profile — admin
+#====================================================
+
+from django.contrib.auth import update_session_auth_hash
+from django.utils import timezone
+
+
+def admin_profile(request):
+    return render(request, 'admin/profile.html')
+
+
+def admin_profile_update(request):
+    if request.method != 'POST':
+        return redirect('admin_profile')
+
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+    user_obj = request.user
+    errors = {}
+
+    new_name = request.POST.get('name', '').strip()
+    new_email = request.POST.get('email', '').strip()
+    new_phone = request.POST.get('phone', '').strip() or None
+
+    if not new_name:
+        errors['name'] = 'Name is required.'
+
+    if not new_email:
+        errors['email'] = 'Email is required.'
+    elif User.objects.exclude(id=user_obj.id).filter(email__iexact=new_email).exists():
+        errors['email'] = 'This email is already in use by another user.'
+
+    if new_phone and User.objects.exclude(id=user_obj.id).filter(phone=new_phone).exists():
+        errors['phone'] = 'This phone number is already in use by another user.'
+
+    if request.FILES.get('profile_image'):
+        new_profile_image = request.FILES['profile_image']
+        extension = os.path.splitext(new_profile_image.name)[1]
+        new_profile_image.name = f"{uuid.uuid4()}{extension}"
+        user_obj.profile_image = new_profile_image
+
+    if errors:
+        first_error = next(iter(errors.values()))
+        if is_ajax:
+            return JsonResponse({'error': first_error, 'errors': errors}, status=400)
+        for field_error in errors.values():
+            messages.error(request, field_error)
+        return redirect('admin_profile')
+
+    user_obj.name = new_name
+    user_obj.email = new_email
+    user_obj.phone = new_phone
+    user_obj.save()
+
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'message': 'Profile updated successfully.',
+            'name': user_obj.name,
+            'email': user_obj.email,
+            'phone': user_obj.phone or '',
+            'profile_image_url': user_obj.profile_image.url if user_obj.profile_image else None,
+        })
+
+    messages.success(request, 'Profile updated successfully.')
+    return redirect('admin_profile')
+
+
+def admin_change_password(request):
+    if request.method != 'POST':
+        return redirect('admin_profile')
+
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+    user_obj = request.user
+
+    current_password = request.POST.get('current_password', '').strip()
+    new_password = request.POST.get('new_password', '').strip()
+    confirm_password = request.POST.get('confirm_password', '').strip()
+
+    def fail(msg):
+        """
+        Shared failure path for every validation error below.
+        - AJAX request  -> JSON error, handled by the fetch() in profile.html,
+          which shows a toast without leaving the page.
+        - Plain request -> messages.error() + redirect back to admin_profile,
+          so the error still shows up even if JS never ran (no-JS fallback).
+        """
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': msg}, status=400)
+        messages.error(request, msg)
+        return redirect('admin_profile')
+
+    # ---- required fields first, so a blank submit never reaches check_password with '' ----
+    if not current_password:
+        return fail('Please enter your current password.')
+
+    if not new_password:
+        return fail('Please enter a new password.')
+
+    if not confirm_password:
+        return fail('Please confirm your new password.')
+
+    # ---- current password check (the case you flagged) ----
+    if not user_obj.check_password(current_password):
+        return fail('Your current password is incorrect.')
+
+    if len(new_password) < 8:
+        return fail('New password must be at least 8 characters.')
+
+    if new_password != confirm_password:
+        return fail('New password and confirmation do not match.')
+
+    if current_password == new_password:
+        return fail('New password must be different from your current password.')
+
+    user_obj.set_password(new_password)
+    user_obj.password_changed_at = timezone.now()
+    user_obj.save()
+
+    # set_password rotates the session hash -- without this the admin
+    # would be logged out immediately after changing their own password.
+    update_session_auth_hash(request, user_obj)
+
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'message': 'Password updated successfully.',
+        })
+
+    messages.success(request, 'Password updated successfully.')
+    return redirect('admin_profile')

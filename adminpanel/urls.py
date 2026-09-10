@@ -46,9 +46,19 @@ urlpatterns = [
     path('results/<int:attempt_id>/delete/', views.admin_result_delete, name='admin_result_delete'),
 
 
-   path('contacts/', views.admin_contacts, name='admin_contacts'),
+    path('contacts/', views.admin_contacts, name='admin_contacts'),
     path('contacts/<int:contact_id>/', views.admin_contact_view, name='admin_contact_view'),
     path('contacts/<int:contact_id>/status/', views.admin_contact_status, name='admin_contact_status'),
     path('contacts/<int:contact_id>/reply/', views.admin_contact_reply, name='admin_contact_reply'),
     path('contacts/<int:contact_id>/delete/', views.admin_contact_delete, name='admin_contact_delete'),
+
+        # ---------- Admin: Notifications ----------
+    path('notifications/', views.admin_notifications, name='admin_notifications'),
+    path('notifications/add/', views.admin_notification_add, name='admin_notification_add'),
+    path('notifications/<int:notification_id>/', views.admin_notification_view, name='admin_notification_view'),
+    path('notifications/<int:notification_id>/delete/', views.admin_notification_delete, name='admin_notification_delete'),
+
+    path('profile/', views.admin_profile, name='admin_profile'),
+    path('profile/update/', views.admin_profile_update, name='admin_profile_update'),
+    path('profile/change-password/', views.admin_change_password, name='admin_change_password'),  
 ]

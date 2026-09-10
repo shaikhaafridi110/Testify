@@ -1,0 +1,230 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}New Notification — Testify Admin{% endblock %}
+{% block page_title %}New Notification{% endblock %}
+{% block page_subtitle %}Compose a notification and choose who receives it.{% endblock %}
+
+{% block style %}
+.form-group {
+  margin-bottom: var(--space-4, 16px);
+}
+.form-label {
+  display: block;
+  font-size: .85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text, #1e293b);
+}
+
+.user-picker {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border, rgba(148,163,184,.3));
+  border-radius: 10px;
+  padding: 8px;
+}
+.user-picker label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: .85rem;
+  cursor: pointer;
+}
+.user-picker label:hover {
+  background: rgba(37,99,235,.06);
+}
+.user-picker label input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+/* ---------- recipient search + select-all toolbar ---------- */
+.picker-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.picker-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.picker-search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted, #94a3b8);
+  pointer-events: none;
+}
+.picker-search input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(148,163,184,.3));
+  font-size: .85rem;
+  font-family: inherit;
+  background: var(--bg, #fff);
+}
+.picker-search input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+
+.picker-action-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 8px 14px;
+  font-size: .8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(148,163,184,.35));
+  background: var(--bg, #fff);
+  color: var(--text, #1e293b);
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.picker-action-btn:hover {
+  background: rgba(37,99,235,.06);
+  border-color: rgba(37,99,235,.35);
+}
+
+#picker-count {
+  font-size: .78rem;
+  color: var(--muted, #64748b);
+  margin: 0 0 8px;
+}
+{% endblock %}
+
+{% block content %}
+<div class="crumbs">
+  <a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span>
+  <a href="{% url 'admin_notifications' %}">Notifications</a><span class="sep">/</span>
+  <span class="current">New</span>
+</div>
+
+<div class="card" style="max-width:640px;" data-reveal>
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input type="text" name="title" class="form-control" required maxlength="150" placeholder="e.g. New exam scheduled">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea name="message" class="form-control" rows="4" required placeholder="Write the notification message…"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <select name="notification_type" class="form-control select">
+        <option value="system">System</option>
+        <option value="exam">Exam</option>
+        <option value="result">Result</option>
+        <option value="class">Class</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Send to</label>
+      <select name="audience" id="audience-select" class="form-control select" onchange="togglePicker()">
+        <option value="">Select audience…</option>
+        <option value="all">Everyone (users + teachers)</option>
+        <option value="user">All users</option>
+        <option value="teacher">All teachers</option>
+        <option value="specific">Specific people…</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="picker-group" style="display:none;">
+      <label class="form-label">Choose recipients</label>
+
+       <div class="picker-toolbar">
+        <div class="picker-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="recipient-search" placeholder="Search by name or email…" oninput="filterRecipients()">
+        </div>
+        <button type="button" class="picker-action-btn" onclick="selectAllVisible(true)">Select all</button>
+        <button type="button" class="picker-action-btn" onclick="selectAllVisible(false)">Clear</button>
+      </div>
+
+      <p id="picker-count">0 of 0 selected</p>
+
+      <div class="user-picker" id="user-picker-list">
+        {% for u in users_for_picker %}
+        <label data-search-text="{{ u.name|lower }} {{ u.email|lower }} {{ u.role|lower }}">
+          <input type="checkbox" name="user_ids[]" value="{{ u.id }}" onchange="updatePickerCount()">
+          {{ u.name }} <span style="color:var(--muted,#64748b);">({{ u.email }} · {{ u.role }})</span>
+        </label>
+        {% empty %}
+        <p style="color:var(--muted,#64748b);font-size:.85rem;">No users found.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:var(--space-4);">
+      <button type="submit" class="btn btn-primary">Send Notification</button>
+      <a href="{% url 'admin_notifications' %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  function togglePicker() {
+    const audience = document.getElementById('audience-select').value;
+    document.getElementById('picker-group').style.display = audience === 'specific' ? 'block' : 'none';
+    if (audience === 'specific') updatePickerCount();
+  }
+
+  function filterRecipients() {
+    const term = document.getElementById('recipient-search').value.trim().toLowerCase();
+    const labels = document.querySelectorAll('#user-picker-list label[data-search-text]');
+    labels.forEach(label => {
+      const matches = !term || label.dataset.searchText.includes(term);
+      label.style.display = matches ? 'flex' : 'none';
+    });
+  }
+
+  // Applies to currently *visible* (filtered) rows only, so a search + "Select all"
+  // combo lets the admin pick a filtered subset without touching hidden rows.
+  function selectAllVisible(checked) {
+    const labels = document.querySelectorAll('#user-picker-list label[data-search-text]');
+    labels.forEach(label => {
+      if (label.style.display !== 'none') {
+        const box = label.querySelector('input[type=checkbox]');
+        if (box) box.checked = checked;
+      }
+    });
+    updatePickerCount();
+  }
+
+  function updatePickerCount() {
+    const total = document.querySelectorAll('#user-picker-list input[type=checkbox]').length;
+    const checked = document.querySelectorAll('#user-picker-list input[type=checkbox]:checked').length;
+    const countEl = document.getElementById('picker-count');
+    if (countEl) countEl.textContent = `${checked} of ${total} selected`;
+  }
+
+  document.addEventListener('DOMContentLoaded', updatePickerCount);
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,291 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}Notifications — Testify Admin{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_subtitle %}Send and track notifications sent to users and teachers.{% endblock %}
+
+{% block style %}
+.kpi-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(37, 99, 235, 0.1); color: #2563eb;
+  margin-bottom: var(--space-3, 12px);
+}
+.kpi-card.accent .kpi-icon { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+.kpi-card.warning .kpi-icon { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg, #fff); border-radius: 16px; width: 100%; max-width: 640px;
+  max-height: 86vh; overflow-y: auto; box-shadow: 0 24px 60px -20px rgba(15,23,42,.45);
+}
+.modal-header {
+  position: sticky; top: 0; background: var(--bg, #fff);
+  padding: 20px 20px 16px; border-bottom: 1px solid var(--border, rgba(148,163,184,.2)); z-index: 2;
+}
+.modal-body { padding: 20px; }
+
+.message-block {
+  background: rgba(37,99,235,.05); border: 1px solid rgba(37,99,235,.12);
+  border-radius: 12px; padding: 16px; white-space: pre-wrap; font-size: .9rem; line-height: 1.5;
+}
+
+.recipient-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border, rgba(148,163,184,.15)); font-size: .85rem;
+}
+.recipient-row:last-child { border-bottom: none; }
+
+.stat-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .78rem; color: var(--muted, #64748b);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot-active { background: #16a34a; }
+.dot-inactive { background: #dc2626; }
+{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="{% url 'admin_dashboard' %}">Admin</a><span class="sep">/</span><span class="current">Notifications</span></div>
+
+<div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ total_notifications }}">0</div>
+    <div class="kpi-lbl">Total Sent</div>
+  </div>
+
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ exam_notifications }}">0</div>
+    <div class="kpi-lbl">Exam</div>
+  </div>
+
+  <div class="card kpi-card accent" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ result_notifications }}">0</div>
+    <div class="kpi-lbl">Result</div>
+  </div>
+
+  <div class="card kpi-card warning" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ system_notifications }}">0</div>
+    <div class="kpi-lbl">System</div>
+  </div>
+</div>
+
+<form class="toolbar" method="get" action="{% url 'admin_notifications' %}">
+  <div class="search">
+    <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <input type="text" name="q" class="form-control" placeholder="Search title or message…" value="{{ search }}" />
+  </div>
+  <div class="filter">
+    <select class="form-control select" name="type" aria-label="Filter by type" onchange="this.form.submit()">
+      <option value="" {% if not notification_type %}selected{% endif %}>All types</option>
+      <option value="exam" {% if notification_type == 'exam' %}selected{% endif %}>Exam</option>
+      <option value="result" {% if notification_type == 'result' %}selected{% endif %}>Result</option>
+      <option value="class" {% if notification_type == 'class' %}selected{% endif %}>Class</option>
+      <option value="system" {% if notification_type == 'system' %}selected{% endif %}>System</option>
+    </select>
+  </div>
+  <a href="{% url 'admin_notification_add' %}" class="btn btn-primary" style="margin-left:auto;">+ New Notification</a>
+  <button type="submit" style="display:none;" aria-hidden="true"></button>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden;" data-reveal>
+  <div class="table-wrap">
+    <table class="data" id="notifications-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Type</th>
+          <th>Recipients</th>
+          <th>Read</th>
+          <th>Sent</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notifications %}
+        <tr>
+          <td class="cell-main">{{ n.title }}</td>
+          <td>
+            {% if n.notification_type == 'exam' %}<span class="badge badge-primary">{{ n.get_notification_type_display }}</span>
+            {% elif n.notification_type == 'result' %}<span class="badge badge-success">{{ n.get_notification_type_display }}</span>
+            {% elif n.notification_type == 'class' %}<span class="badge badge-warning">{{ n.get_notification_type_display }}</span>
+            {% else %}<span class="badge">{{ n.get_notification_type_display }}</span>{% endif %}
+          </td>
+          <td>{{ n.recipient_count }}</td>
+          <td>
+            <span class="stat-pill"><span class="dot dot-active"></span>{{ n.read_count }} read</span>
+          </td>
+          <td>{{ n.created_at|date:"d M Y, H:i" }}</td>
+          <td class="row-actions">
+            <button class="icon-btn" aria-label="View" onclick="openNotification({{ n.id }})">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button class="icon-btn danger" aria-label="Delete"
+              onclick="confirmAction('Delete notification “{{ n.title|escapejs }}”? This removes it for all {{ n.recipient_count }} recipient(s).',()=>deleteNotification(this, '{{ n.id }}'))">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center; padding:2rem;">No notifications sent yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if notifications.has_other_pages %}
+<div class="pagination">
+  <button class="page-btn" {% if not notifications.has_previous %}disabled{% endif %}
+    {% if notifications.has_previous %}onclick="window.location.href='?page={{ notifications.previous_page_number }}&q={{ search|urlencode }}&type={{ notification_type }}'"{% endif %}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </button>
+  {% for num in notifications.paginator.page_range %}
+  <button class="page-btn {% if notifications.number == num %}active{% endif %}"
+    onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&type={{ notification_type }}'">{{ num }}</button>
+  {% endfor %}
+  <button class="page-btn" {% if not notifications.has_next %}disabled{% endif %}
+    {% if notifications.has_next %}onclick="window.location.href='?page={{ notifications.next_page_number }}&q={{ search|urlencode }}&type={{ notification_type }}'"{% endif %}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </button>
+</div>
+{% endif %}
+
+<!-- ---------- View modal ---------- -->
+<div class="modal-overlay" id="notif-modal" onclick="if(event.target===this)closeNotification()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notif-title">
+    <div class="modal-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <h2 id="notif-title" style="margin:0;font-size:1.25rem;">Notification</h2>
+          <p id="notif-sub" style="margin:4px 0 0;color:var(--muted,#64748b);font-size:.85rem;">Loading…</p>
+        </div>
+        <button class="icon-btn" aria-label="Close" onclick="closeNotification()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" id="notif-body">
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line short"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const notifModal = document.getElementById('notif-modal');
+  const notifBody  = document.getElementById('notif-body');
+  const notifSub   = document.getElementById('notif-sub');
+
+  function openNotification(notificationId) {
+    notifModal.classList.add('open');
+    notifSub.textContent = 'Loading…';
+    notifBody.innerHTML = '<div class="skel skel-line"></div><div class="skel skel-line short"></div>';
+
+    fetch(`/admin/notifications/${notificationId}/`, { headers: { 'Accept': 'application/json' } })
+      .then(r => r.json())
+      .then(data => renderNotification(data.notification))
+      .catch(() => {
+        notifSub.textContent = '';
+        notifBody.innerHTML = '<p style="color:#dc2626;">Could not load this notification.</p>';
+      });
+  }
+
+  function closeNotification() { notifModal.classList.remove('open'); }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNotification(); });
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function renderNotification(n) {
+    notifSub.textContent = `${n.notification_type_display} — ${new Date(n.created_at).toLocaleString()}`;
+
+    const rows = n.recipients.map(r => `
+      <div class="recipient-row">
+        <span>${escapeHtml(r.user_name)} <span style="color:var(--muted,#64748b);">(${escapeHtml(r.user_email)})</span></span>
+        <span class="badge ${r.status === 'new' ? 'badge-error' : r.status === 'read' ? 'badge-warning' : 'badge-success'}">${r.status}</span>
+      </div>
+    `).join('') || '<p style="color:var(--muted,#64748b);font-size:.85rem;">No recipients.</p>';
+
+    notifBody.innerHTML = `
+      <h3 style="font-size:.9rem;margin:0 0 8px;">${escapeHtml(n.title)}</h3>
+      <div class="message-block">${escapeHtml(n.message)}</div>
+      <div style="display:flex;gap:16px;margin:var(--space-4) 0;font-size:.85rem;">
+        <span><strong>${n.total_recipients}</strong> total</span>
+        <span style="color:#16a34a;"><strong>${n.read_count}</strong> read</span>
+        <span style="color:#dc2626;"><strong>${n.unread_count}</strong> unread</span>
+      </div>
+      <h3 style="font-size:.9rem;margin:var(--space-4) 0 8px;">Recipients${n.recipients_truncated ? ' (first 100)' : ''}</h3>
+      ${rows}
+    `;
+  }
+
+  function deleteNotification(btn, notificationId) {
+    if (btn) btn.disabled = true;
+    fetch(`/admin/notifications/${notificationId}/delete/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Notification deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          if (btn) btn.disabled = false;
+          toast('Could not delete notification.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => {
+        if (btn) btn.disabled = false;
+        toast('Could not delete notification.', { title: 'Error', type: 'error' });
+      });
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}
