@@ -1,0 +1,102 @@
+{% extends 'master.html' %}
+{% block title %}Result — {{ exam.title }}{% endblock %}
+
+{% block style %}
+.review-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.review-option.correct {
+  border-color: var(--color-success, #16a34a);
+  background: rgba(22, 163, 74, 0.08);
+}
+.review-option.selected-wrong {
+  border-color: var(--color-error, #e5484d);
+  background: rgba(229, 72, 77, 0.08);
+}
+{% endblock %}
+
+{% block content %}
+<main>
+  <section class="section-sm">
+    <div class="container" style="max-width:800px;">
+
+      <div class="card" style="padding:var(--space-6);text-align:center;margin-bottom:var(--space-5);">
+        {% if attempt.result_status == 'pass' %}
+          <span class="badge badge-success badge-dot" style="font-size:1rem;">Pass</span>
+        {% else %}
+          <span class="badge badge-error badge-dot" style="font-size:1rem;">Fail</span>
+        {% endif %}
+        <h1 style="margin:var(--space-3) 0;">{{ exam.title }}</h1>
+        <p class="text-muted">Score: {{ attempt.score }} / {{ exam.total_marks }} &nbsp;·&nbsp; {{ attempt.percentage }}%</p>
+      </div>
+
+      <div class="exam-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:var(--space-6);">
+        <div class="card" style="padding:var(--space-3);text-align:center;">
+          <div class="text-xs text-muted">Correct</div>
+          <div style="font-size:1.4rem;">{{ attempt.correct_answers }}</div>
+        </div>
+        <div class="card" style="padding:var(--space-3);text-align:center;">
+          <div class="text-xs text-muted">Incorrect</div>
+          <div style="font-size:1.4rem;">{{ attempt.wrong_answers }}</div>
+        </div>
+        <div class="card" style="padding:var(--space-3);text-align:center;">
+          <div class="text-xs text-muted">Skipped</div>
+          <div style="font-size:1.4rem;">{{ attempt.skipped_answers }}</div>
+        </div>
+        <div class="card" style="padding:var(--space-3);text-align:center;">
+          <div class="text-xs text-muted">Percentage</div>
+          <div style="font-size:1.4rem;">{{ attempt.percentage }}%</div>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom:var(--space-4);">Full review</h3>
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);margin-bottom:var(--space-6);">
+        {% for item in full_review %}
+        <div class="card" style="padding:var(--space-4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;gap:var(--space-2);">
+            <strong>Q{{ forloop.counter }}. {{ item.question.question_text }}</strong>
+            {% if item.status == 'correct' %}
+              <span class="badge badge-success">Correct</span>
+            {% elif item.status == 'incorrect' %}
+              <span class="badge badge-error">Incorrect</span>
+            {% else %}
+              <span class="badge badge-warning">Skipped</span>
+            {% endif %}
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+            {% for option in item.question.options.all %}
+              <div class="review-option
+                {% if option.is_correct %} correct{% endif %}
+                {% if item.selected_option_id == option.id and not option.is_correct %} selected-wrong{% endif %}">
+                <span class="badge{% if option.is_correct %} badge-primary{% endif %}">{{ option.option_key }}</span>
+                <span>{{ option.option_text }}</span>
+                {% if option.is_correct %}
+                  <span class="badge badge-success" style="margin-left:auto;">Correct answer</span>
+                {% elif item.selected_option_id == option.id %}
+                  <span class="badge badge-error" style="margin-left:auto;">Your answer</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+
+          {% if item.status == 'skipped' %}
+            <p class="text-xs text-muted" style="margin-top:var(--space-2);margin-bottom:0;">You skipped this question.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="exam-footer" style="justify-content:center;gap:var(--space-3);">
+        <a href="{% url 'exams' %}" class="btn btn-primary btn-sm">Back to Exams</a>
+      </div>
+
+    </div>
+  </section>
+</main>
+{% endblock %}

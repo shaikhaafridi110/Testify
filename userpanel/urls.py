@@ -12,5 +12,18 @@ from . import views
 urlpatterns = [
     path("", views.login_view, name="login"),
     path("index/", views.index, name="index"),
+    path("about/", views.about, name="about"),
+    path("features/", views.features, name="features"),
+    path("how-it-works/", views.how_it_works, name="how_it_works"),
+
+
+
+    #exam
+    path("exams/", views.exams, name="exams"),
+    path("exam/<int:exam_id>/enroll/", views.enroll_exam, name="enroll_exam"),
+    path("exam/attempt/<int:attempt_id>/", views.exam_attempt, name="exam_attempt"),
+    path("exam/attempt/<int:attempt_id>/result/", views.exam_result, name="exam_result"),
+   
+    path("contact/", views.contact, name="contact"),
     path("logout/", views.logout_view, name="logout"),
 ]

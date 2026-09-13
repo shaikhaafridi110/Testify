@@ -1,0 +1,112 @@
+{% extends 'master.html' %}
+
+{% block title %}About — Testify{% endblock %}
+{% block meta_description %}Learn about Testify, our vision and mission to modernize online examinations for educators and students.{% endblock %}
+
+{% block content %}
+<main>
+  <section class="hero" style="padding:var(--space-8) 0 var(--space-7);">
+    <div class="hero-bg"></div>
+    <div class="container hero-grid">
+      <div class="hero-content" data-reveal="left">
+        <span class="eyebrow">About Testify</span>
+        <h1 class="hero-title">Examinations, <span class="grad">reimagined.</span></h1>
+        <p class="hero-desc">Testify brings classes, exams, student enrollment, and results into one calm, professional platform — so educators can focus on teaching and students can focus on performing.</p>
+      </div>
+      <div class="hero-card" data-reveal="right">
+        <div class="hero-card-head"><div class="dots"><span></span><span></span><span></span></div><span class="title">Our promise</span></div>
+        <div class="grid-2">
+          <div class="flex items-center gap-3"><div class="role-icon" style="width:40px;height:40px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div><div><div class="fw-600 text-sm">Simple</div><div class="text-xs text-muted">No clutter</div></div></div>
+          <div class="flex items-center gap-3"><div class="role-icon" style="width:40px;height:40px;border-radius:10px;background:var(--accent-50);color:var(--accent-600);display:grid;place-items:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path></svg></div><div><div class="fw-600 text-sm">Reliable</div><div class="text-xs text-muted">Exam-day ready</div></div></div>
+          <div class="flex items-center gap-3"><div class="role-icon" style="width:40px;height:40px;border-radius:10px;background:var(--warning-50);color:var(--warning-700);display:grid;place-items:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div><div><div class="fw-600 text-sm">Fast</div><div class="text-xs text-muted">CSV in seconds</div></div></div>
+          <div class="flex items-center gap-3"><div class="role-icon" style="width:40px;height:40px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18 17V9M13 17V5M8 17v-3"></path></svg></div><div><div class="fw-600 text-sm">Clear</div><div class="text-xs text-muted">Insightful results</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="grid-2" data-stagger>
+        <div class="card card-pad-lg card-hover" data-reveal>
+          <span class="eyebrow">Vision</span>
+          <h2 style="font-size:1.5rem;margin-top:var(--space-2);">A calmer way to examine</h2>
+          <p class="text-muted mt-3">We envision a world where running an online exam feels as simple as uploading a file — where teachers spend their time on teaching, not on fighting tools, and students get a focused, fair experience on exam day.</p>
+        </div>
+        <div class="card card-pad-lg card-hover" data-reveal>
+          <span class="eyebrow">Mission</span>
+          <h2 style="font-size:1.5rem;margin-top:var(--space-2);">From CSV to results, effortlessly</h2>
+          <p class="text-muted mt-3">Our mission is to connect class management, enrollment, exam creation, and result reporting into one continuous workflow — powered by CSV enrollment and a clean, responsive interface for every role.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--bg-elevated);">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">Why Testify</span>
+        <h2 class="section-title">Built around real examination workflows</h2>
+      </div>
+      <div class="feature-grid" data-stagger>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div><h3>CSV-first enrollment</h3><p>Teachers upload a single CSV to enroll an entire class — no manual student entry, no separate student database.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div><h3>Timed exam interface</h3><p>A countdown timer, question palette, and mark-for-review keep students focused and exams fair.</p></div>
+        <div class="card feature-card accent card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18 17V9M13 17V5M8 17v-3"></path></svg></div><h3>Result CSV reporting</h3><p>Upload, preview, search, and sort result CSVs, then generate leaderboards and reports instantly.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg></div><h3>Role-based dashboards</h3><p>Admin, teacher, and student each get a tailored interface with exactly the tools they need.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg></div><h3>Fully responsive</h3><p>From desktop to mobile, every page — including the exam screen — adapts to any device.</p></div>
+        <div class="card feature-card accent card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path></svg></div><h3>Secure by design</h3><p>Enrollment-based student login and role-based access keep the right people in the right places.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">How roles fit together</span>
+        <h2 class="section-title">Three roles, one platform</h2>
+      </div>
+      <div class="role-grid" data-stagger>
+        <div class="card role-card admin card-hover" data-reveal>
+          <div class="role-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path><path d="M9 12l2 2 4-4"></path></svg></div>
+          <h3>Admin workflow</h3>
+          <p>Oversee the entire platform with full control over users, teachers, classes, and exams.</p>
+          <ul><li>Manage users &amp; teachers</li><li>Oversee classes</li><li>View result files</li><li>Platform notifications</li></ul>
+        </div>
+        <div class="card role-card teacher card-hover" data-reveal>
+          <div class="role-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div>
+          <h3>Teacher workflow</h3>
+          <p>Create classes, upload enrollment CSVs, build exams, and manage results end-to-end.</p>
+          <ul><li>Create class &amp; upload CSV</li><li>Build exams &amp; questions</li><li>Publish &amp; close exams</li><li>Manage result CSVs</li></ul>
+        </div>
+        <div class="card role-card student card-hover" data-reveal>
+          <div class="role-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div>
+          <h3>Student workflow</h3>
+          <p>Log in with an enrollment number, take timed exams, and view results and rank.</p>
+          <ul><li>Enrollment-based login</li><li>Take timed exams</li><li>Navigate questions</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+      <section class="section-sm" style="background:var(--bg-elevated);">
+    <div class="container">
+      <div class="stats-strip" data-stagger>
+        <div class="card stat-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></div><div class="num" data-count="{{ total_students }}" data-suffix="+">0</div><div class="lbl">Students</div></div>
+        <div class="card stat-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div><div class="num" data-count="{{ total_teachers }}" data-suffix="+">0</div><div class="lbl">Teachers</div></div>
+        <div class="card stat-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg></div><div class="num" data-count="{{ total_exams }}" data-suffix="+">0</div><div class="lbl">Exams</div></div>
+        <div class="card stat-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div><div class="num" data-count="{{ total_attempts }}" data-suffix="+">0</div><div class="lbl">Exam Attempts</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="cta-banner" data-reveal="scale">
+        <h2>Want to see it in action?</h2>
+        <p>Explore the features that make Testify a complete examination platform.</p>
+        <div class="hero-actions"><a href="{% url 'features' %}" class="btn btn-primary btn-lg">Explore Features</a><a href="{% url 'how_it_works' %}" class="btn btn-secondary btn-lg">How It Works</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

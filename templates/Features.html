@@ -1,0 +1,48 @@
+{% extends 'master.html' %}
+
+{% block title %}Features — Testify{% endblock %}
+{% block meta_description %}Explore every Testify feature: online exams, class management, CSV enrollment, question management, result CSVs, leaderboards, and dashboards.{% endblock %}
+
+{% block content %}
+<main>
+  <section class="hero" style="padding:var(--space-8) 0 var(--space-6);">
+    <div class="hero-bg"></div>
+    <div class="container">
+      <div class="section-header" data-reveal style="margin-bottom:var(--space-6);">
+        <span class="eyebrow">Features</span>
+        <h1 class="hero-title" style="font-size:clamp(2rem,4vw,3rem);">Everything Testify can do</h1>
+        <p class="section-subtitle">A complete toolkit for running online examinations — from class creation to result reports.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="feature-grid" data-stagger>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div><h3>Online Examination</h3><p>Timed exams with question navigation, mark-for-review, and automatic submission when time runs out.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></div><h3>Class Management</h3><p>Teachers organize students by course, semester, and academic year with full class lifecycle control.</p></div>
+        <div class="card feature-card accent card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div><h3>CSV Student Enrollment</h3><p>Teachers upload a single CSV to enroll students into a class — the only place CSV upload is used for students.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><h3>Exam Creation <span class="text-xs text-muted">— Teacher</span></h3><p>Teachers set duration, total marks, passing marks, schedule, and status — draft, publish, or close.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div><h3>Question Management <span class="text-xs text-muted">— Teacher</span></h3><p>Teachers add MCQ and True/False questions, set correct answers, assign marks, and reorder easily.</p></div>
+        <div class="card feature-card accent card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18 17V9M13 17V5M8 17v-3"></path></svg></div><h3>Result CSV Management <span class="text-xs text-muted">— Teacher</span></h3><p>Teachers upload, preview, search, sort, and generate reports from result CSVs in seconds.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9"/></svg></div><h3>Leaderboard</h3><p>Auto-generated rankings from result data with podium highlights for top performers.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg></div><h3>Teacher Dashboard</h3><p>Teachers track classes, students, exams, and results — with class creation, CSV enrollment, and exam building all in one place.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg></div><h3>Student Dashboard</h3><p>Students view available exams and start attempts from one clean screen. Results are managed and shared by teachers and admins, not viewed directly by students.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path></svg></div><h3>Admin Dashboard</h3><p>Full platform oversight with user, teacher, class, and result-file management, plus exam oversight — admins can review exams, but don't create them.</p></div>
+        <div class="card feature-card accent card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 9c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div><h3>Notifications</h3><p>Stay informed about new exams, results, class updates, and system messages.</p></div>
+        <div class="card feature-card card-hover" data-reveal><div class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg></div><h3>Responsive Design</h3><p>Every page adapts from desktop to mobile, including the exam-taking interface.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="cta-banner" data-reveal="scale">
+        <h2>Ready to try Testify?</h2>
+        <p>Create an account and explore the full platform in minutes.</p>
+        <div class="hero-actions"><a href="{% url 'login' %}" class="btn btn-primary btn-lg">Get Started</a><a href="{% url 'how_it_works' %}" class="btn btn-secondary btn-lg">How It Works</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

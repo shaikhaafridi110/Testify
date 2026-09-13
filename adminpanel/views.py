@@ -1919,38 +1919,51 @@ def _notify_exam_status(exam, old_status=None):
 #====================================================
 # profile — admin
 #====================================================
-
+#====================================================
+# profile — admin
+#====================================================
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth import update_session_auth_hash
 from django.utils import timezone
 
 
 def admin_profile(request):
+    """Display the logged-in admin's profile page."""
     return render(request, 'admin/profile.html')
 
 
 def admin_profile_update(request):
+    """Update name / email / phone / profile photo from the Edit Profile modal."""
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
     if request.method != 'POST':
         return redirect('admin_profile')
 
-    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
     user_obj = request.user
     errors = {}
 
-    new_name = request.POST.get('name', '').strip()
-    new_email = request.POST.get('email', '').strip()
-    new_phone = request.POST.get('phone', '').strip() or None
+    new_name = user_obj.name
+    new_email = user_obj.email
+    new_phone = user_obj.phone
 
-    if not new_name:
-        errors['name'] = 'Name is required.'
+    if 'name' in request.POST:
+        new_name = request.POST.get('name', '').strip()
+        if not new_name:
+            errors['name'] = 'Name is required.'
 
-    if not new_email:
-        errors['email'] = 'Email is required.'
-    elif User.objects.exclude(id=user_obj.id).filter(email__iexact=new_email).exists():
-        errors['email'] = 'This email is already in use by another user.'
+    if 'email' in request.POST:
+        new_email = request.POST.get('email', '').strip()
+        if not new_email:
+            errors['email'] = 'Email is required.'
+        elif User.objects.exclude(id=user_obj.id).filter(email__iexact=new_email).exists():
+            errors['email'] = 'This email is already in use by another user.'
 
-    if new_phone and User.objects.exclude(id=user_obj.id).filter(phone=new_phone).exists():
-        errors['phone'] = 'This phone number is already in use by another user.'
+    if 'phone' in request.POST:
+        new_phone = request.POST.get('phone', '').strip() or None
+        if new_phone and User.objects.exclude(id=user_obj.id).filter(phone=new_phone).exists():
+            errors['phone'] = 'This phone number is already in use by another user.'
 
+    # ---- profile image ----
     if request.FILES.get('profile_image'):
         new_profile_image = request.FILES['profile_image']
         extension = os.path.splitext(new_profile_image.name)[1]
@@ -1971,79 +1984,52 @@ def admin_profile_update(request):
     user_obj.save()
 
     if is_ajax:
-        return JsonResponse({
-            'success': True,
-            'message': 'Profile updated successfully.',
-            'name': user_obj.name,
-            'email': user_obj.email,
-            'phone': user_obj.phone or '',
-            'profile_image_url': user_obj.profile_image.url if user_obj.profile_image else None,
-        })
+        return JsonResponse({'success': True})
 
     messages.success(request, 'Profile updated successfully.')
     return redirect('admin_profile')
 
 
 def admin_change_password(request):
+    """Change the admin's password and stamp password_changed_at."""
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
     if request.method != 'POST':
         return redirect('admin_profile')
 
-    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
     user_obj = request.user
+    errors = {}
 
-    current_password = request.POST.get('current_password', '').strip()
-    new_password = request.POST.get('new_password', '').strip()
-    confirm_password = request.POST.get('confirm_password', '').strip()
+    current_password = request.POST.get('current_password', '')
+    new_password = request.POST.get('new_password', '')
+    confirm_password = request.POST.get('confirm_password', '')
 
-    def fail(msg):
-        """
-        Shared failure path for every validation error below.
-        - AJAX request  -> JSON error, handled by the fetch() in profile.html,
-          which shows a toast without leaving the page.
-        - Plain request -> messages.error() + redirect back to admin_profile,
-          so the error still shows up even if JS never ran (no-JS fallback).
-        """
-        if is_ajax:
-            return JsonResponse({'success': False, 'error': msg}, status=400)
-        messages.error(request, msg)
-        return redirect('admin_profile')
+    if not check_password(current_password, user_obj.password):
+        errors['current_password'] = 'Current password is incorrect.'
 
-    # ---- required fields first, so a blank submit never reaches check_password with '' ----
-    if not current_password:
-        return fail('Please enter your current password.')
-
-    if not new_password:
-        return fail('Please enter a new password.')
-
-    if not confirm_password:
-        return fail('Please confirm your new password.')
-
-    # ---- current password check (the case you flagged) ----
-    if not user_obj.check_password(current_password):
-        return fail('Your current password is incorrect.')
-
-    if len(new_password) < 8:
-        return fail('New password must be at least 8 characters.')
+    if not new_password or len(new_password) < 8:
+        errors['new_password'] = 'New password must be at least 8 characters.'
 
     if new_password != confirm_password:
-        return fail('New password and confirmation do not match.')
+        errors['confirm_password'] = 'Passwords do not match.'
 
-    if current_password == new_password:
-        return fail('New password must be different from your current password.')
+    if errors:
+        first_error = next(iter(errors.values()))
+        if is_ajax:
+            return JsonResponse({'error': first_error, 'errors': errors}, status=400)
+        for field_error in errors.values():
+            messages.error(request, field_error)
+        return redirect('admin_profile')
 
     user_obj.set_password(new_password)
     user_obj.password_changed_at = timezone.now()
     user_obj.save()
 
-    # set_password rotates the session hash -- without this the admin
-    # would be logged out immediately after changing their own password.
+    # Keep the admin logged in after the password hash changes
     update_session_auth_hash(request, user_obj)
 
     if is_ajax:
-        return JsonResponse({
-            'success': True,
-            'message': 'Password updated successfully.',
-        })
+        return JsonResponse({'success': True})
 
     messages.success(request, 'Password updated successfully.')
     return redirect('admin_profile')

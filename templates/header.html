@@ -4,12 +4,13 @@
     <a href="{% url 'index' %}" class="brand"><span class="brand-mark">T</span><span>Testify</span></a>
     <nav class="nav" aria-label="Primary">
       <a href="{% url 'index' %}" class="nav-link{% if request.resolver_match.url_name == 'index' %} active{% endif %}" data-nav>Home</a>
-      <a href="#" class="nav-link" data-nav>About</a>
-      <a href="#" class="nav-link" data-nav>Features</a>
-      <a href="#" class="nav-link" data-nav>How It Works</a>
-      <a href="#" class="nav-link" data-nav>Exams</a>
+      <a href="{% url 'about' %}" class="nav-link{% if request.resolver_match.url_name == 'about' %} active{% endif %}" data-nav>About</a>
+      <a href="{% url 'features' %}" class="nav-link{% if request.resolver_match.url_name == 'features' %} active{% endif %}" data-nav>Features</a>
+      <a href="{% url 'how_it_works' %}" class="nav-link{% if request.resolver_match.url_name == 'how_it_works' %} active{% endif %}" data-nav>How It Works</a>
+      <a href="{% url 'exams' %}" class="nav-link{% if request.resolver_match.url_name == 'exams' %} active{% endif %}" data-nav>Exams</a>
+      <!-- Leaderboard has no view yet — wire it up the same way once it exists. -->
       <a href="#" class="nav-link" data-nav>Leaderboard</a>
-      <a href="#" class="nav-link" data-nav>Contact</a>
+      <a href="{% url 'contact' %}" class="nav-link{% if request.resolver_match.url_name == 'contact' %} active{% endif %}" data-nav>Contact</a>
     </nav>
     <div class="header-actions">
       <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
@@ -18,14 +19,16 @@
       </button>
       {% if request.user.is_authenticated %}
         {% if request.user.role == 'admin' %}
+          <!-- Admins get a real dashboard, so it's worth its own button. -->
           <a href="{% url 'admin_dashboard' %}" class="btn btn-primary">Dashboard</a>
-        {% else %}
-          <a href="{% url 'index' %}" class="btn btn-primary">Dashboard</a>
         {% endif %}
+        <!-- Teachers/users have no dedicated dashboard yet — their "Dashboard"
+             used to just point back at Home, which the nav already covers.
+             Drop the duplicate button until they have a real one. -->
         <a href="{% url 'logout' %}" class="btn btn-ghost">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="btn btn-ghost">Sign in</a>
-        <a href="#" class="btn btn-primary">Get Started</a>
+        <a href="{% url 'login' %}" class="btn btn-primary">Get Started</a>
       {% endif %}
       <button class="theme-toggle menu-btn" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>

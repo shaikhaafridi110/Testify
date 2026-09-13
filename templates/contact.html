@@ -1,0 +1,130 @@
+{% extends 'master.html' %}
+
+{% block title %}Contact — Testify{% endblock %}
+{% block meta_description %}Get in touch with the Testify team for questions, support, or partnership inquiries.{% endblock %}
+
+{% block content %}
+<main>
+  <section class="hero" style="padding:var(--space-8) 0 var(--space-6);">
+    <div class="hero-bg"></div>
+    <div class="container">
+      <div class="section-header" data-reveal style="margin-bottom:var(--space-6);">
+        <span class="eyebrow">Contact</span>
+        <h1 class="hero-title" style="font-size:clamp(2rem,4vw,3rem);">We'd love to hear from you</h1>
+        <p class="section-subtitle">Questions, feedback, or partnership ideas — reach out and we'll get back to you shortly.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm" style="padding-top:0;">
+    <div class="container">
+      <div class="grid-2" style="grid-template-columns:1.3fr 0.7fr;align-items:start;">
+        <div class="card card-pad-lg" data-reveal>
+          <h2 style="font-size:1.3rem;margin-bottom:var(--space-4);">Send us a message</h2>
+
+          <form data-validate novalidate method="post" action="{% url 'contact' %}">
+            {% csrf_token %}
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" for="c-name">Full name<span class="req">*</span></label>
+                <input type="text" id="c-name" name="name" class="form-control" placeholder="Your name" required />
+                <div class="form-error">Please enter your name.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="c-email">Email<span class="req">*</span></label>
+                <input type="email" id="c-email" name="email" class="form-control" placeholder="you@example.com" required />
+                <div class="form-error">Please enter a valid email.</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="c-subject">Subject<span class="req">*</span></label>
+              <input type="text" id="c-subject" name="subject" class="form-control" placeholder="How can we help?" required />
+              <div class="form-error">Please enter a subject.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="c-msg">Message<span class="req">*</span></label>
+              <textarea id="c-msg" name="message" class="form-control" placeholder="Write your message…" required></textarea>
+              <div class="form-error">Please enter a message.</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Send Message</button>
+          </form>
+        </div>
+
+        <div class="flex-col gap-4" data-reveal>
+          <div class="card">
+            <h3 style="font-size:1.05rem;">Email</h3>
+            <p class="text-muted text-sm mt-3">testify.exam01@gmail.com</p>
+          </div>
+          <div class="card">
+            <h3 style="font-size:1.05rem;">Phone</h3>
+            <p class="text-muted text-sm mt-3">+91 98765 43210</p>
+          </div>
+          <div class="card">
+            <h3 style="font-size:1.05rem;">Office</h3>
+            <p class="text-muted text-sm mt-3">Testify HQ<br/>221B Education Lane<br/>Ahmedabad, India</p>
+          </div>
+          <div class="card">
+            <h3 style="font-size:1.05rem;">Follow us</h3>
+            <div class="socials mt-3">
+              <a href="#" class="social-btn" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></a>
+              <a href="#" class="social-btn" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+              <a href="#" class="social-btn" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></a>
+              <a href="#" class="social-btn" aria-label="X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm" style="padding-top:0;">
+    <div class="container">
+      <div class="card" style="padding:0;overflow:hidden;" data-reveal>
+        <iframe
+          src="https://www.google.com/maps?q=221B+Education+Lane,+Ahmedabad,+India&output=embed"
+          width="100%"
+          height="360"
+          style="border:0;display:block;"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Testify HQ location">
+        </iframe>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--bg-elevated);">
+    <div class="container container-narrow">
+      <div class="section-header" data-reveal>
+        <span class="eyebrow">FAQ</span>
+        <h2 class="section-title">Quick answers</h2>
+      </div>
+      <div class="accordion" data-stagger>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">How do students log in?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Students log in with their enrollment number and the last 7 digits of that enrollment number as the password.</div></div>
+        </div>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">Is there a free trial?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Yes — you can register and explore the platform at no cost during the trial period.</div></div>
+        </div>
+        <div class="acc-item" data-reveal>
+          <button class="acc-trigger">Can I use Testify on mobile?<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+          <div class="acc-body"><div class="acc-body-inner">Absolutely. Every page, including the exam interface, is fully responsive.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

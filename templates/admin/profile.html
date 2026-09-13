@@ -1,4 +1,4 @@
-{% extends "admin/master.html" %}
+{% extends 'admin/master.html' %}
 {% load static %}
 
 {% block title %}Profile — Testify Admin{% endblock %}
@@ -34,7 +34,7 @@
       </div>
     </div>
     <div class="spacer"></div>
-    <button type="button" class="btn btn-secondary" onclick="openModal('edit-profile')">Edit Profile</button>
+    <button class="btn btn-secondary" onclick="openModal('edit-profile')">Edit Profile</button>
   </div>
 </div>
 
@@ -42,17 +42,27 @@
   <div class="card card-pad-lg" data-reveal>
     <h3 style="font-size:1.1rem;margin-bottom:var(--space-4);">Personal information</h3>
     <div class="flex-col gap-4">
-      <div class="flex justify-between"><span class="text-muted">Full name</span><span class="fw-600" id="pi-name">{{ request.user.name }}</span></div>
-      <div class="flex justify-between"><span class="text-muted">Email</span><span class="fw-600" id="pi-email">{{ request.user.email }}</span></div>
-      <div class="flex justify-between"><span class="text-muted">Phone</span><span class="fw-600" id="pi-phone">{{ request.user.phone|default:"—" }}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Full name</span><span class="fw-600">{{ request.user.name }}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Email</span><span class="fw-600">{{ request.user.email }}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Phone</span><span class="fw-600">{{ request.user.phone|default:"—" }}</span></div>
       <div class="flex justify-between"><span class="text-muted">Role</span><span class="fw-600">{{ request.user.get_role_display }}</span></div>
       <div class="flex justify-between"><span class="text-muted">Joined</span><span class="fw-600">{{ request.user.created_at|date:"d M Y" }}</span></div>
+      <div class="flex justify-between">
+        <span class="text-muted">Password last changed</span>
+        <span class="fw-600">
+          {% if request.user.password_changed_at %}
+            {{ request.user.password_changed_at|date:"d M Y, H:i" }}
+          {% else %}
+            Never changed
+          {% endif %}
+        </span>
+      </div>
     </div>
   </div>
 
   <div class="card card-pad-lg" data-reveal>
     <h3 style="font-size:1.1rem;margin-bottom:var(--space-4);">Change password</h3>
-    <form id="change-password-form" data-validate novalidate method="post" action="{% url 'admin_change_password' %}">
+    <form data-validate novalidate method="post" action="{% url 'admin_change_password' %}">
       {% csrf_token %}
       <div class="form-group">
         <label class="form-label" for="cp-current">Current password<span class="req">*</span></label>
@@ -72,7 +82,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
-        <div class="form-error">Please enter a new password (at least 8 characters).</div>
+        <div class="form-error">Password must be at least 8 characters.</div>
       </div>
       <div class="form-group">
         <label class="form-label" for="cp-confirm">Confirm password<span class="req">*</span></label>
@@ -95,12 +105,12 @@
   <div class="modal">
     <div class="modal-head">
       <h3>Edit profile</h3>
-      <button class="modal-close" aria-label="Close" data-close>
+      <button class="modal-close" aria-label="Close">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
     <div class="modal-body">
-      <form id="edit-profile-form" data-validate novalidate method="post" enctype="multipart/form-data" action="{% url 'admin_profile_update' %}">
+      <form data-validate novalidate method="post" enctype="multipart/form-data" action="{% url 'admin_profile_update' %}">
         {% csrf_token %}
         <div class="form-group">
           <label class="form-label">Full name<span class="req">*</span></label>
@@ -129,97 +139,13 @@
   </div>
 </div>
 
+{% if messages %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const csrftoken = '{{ csrf_token }}';
-
-  // ---------------------------------------------------------
-  // Edit profile (AJAX) — name / email / phone / profile image
-  // ---------------------------------------------------------
-  const profileForm = document.getElementById('edit-profile-form');
-  if (profileForm) {
-    profileForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-
-      const submitBtn = profileForm.querySelector('button[type="submit"]');
-      const originalText = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving…';
-
-      const formData = new FormData(profileForm);
-
-      fetch(profileForm.action, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': csrftoken,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
-      })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .then(({ ok, data }) => {
-          if (ok && data.success) {
-            toast(data.message || 'Profile updated successfully.', { title: 'Updated', type: 'success' });
-            closeModal('edit-profile');
-            setTimeout(() => window.location.reload(), 600);
-          } else {
-            toast((data && data.error) || 'Could not update profile.', { title: 'Error', type: 'error' });
-          }
-        })
-        .catch(() => {
-          toast('Could not update profile. Please try again.', { title: 'Error', type: 'error' });
-        })
-        .finally(() => {
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalText;
-        });
-    });
-  }
-
-  // ---------------------------------------------------------
-  // Change password (AJAX) — shows the real server error
-  // ("Your current password is incorrect.", mismatch, etc.)
-  // instead of doing a silent full-page redirect.
-  // ---------------------------------------------------------
-  const passwordForm = document.getElementById('change-password-form');
-  if (passwordForm) {
-    passwordForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-
-      const submitBtn = passwordForm.querySelector('button[type="submit"]');
-      const originalText = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Updating…';
-
-      const formData = new FormData(passwordForm);
-
-      fetch(passwordForm.action, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': csrftoken,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
-      })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .then(({ ok, data }) => {
-          if (ok && data.success) {
-            toast(data.message || 'Password updated successfully.', { title: 'Updated', type: 'success' });
-            passwordForm.reset();
-          } else {
-            // e.g. "Your current password is incorrect."
-            toast((data && data.error) || 'Could not update password.', { title: 'Error', type: 'error' });
-          }
-        })
-        .catch(() => {
-          toast('Could not update password. Please try again.', { title: 'Error', type: 'error' });
-        })
-        .finally(() => {
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalText;
-        });
-    });
-  }
-});
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
 </script>
+{% endif %}
 {% endblock %}

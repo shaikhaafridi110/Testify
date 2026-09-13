@@ -58,7 +58,7 @@ urlpatterns = [
     path('notifications/<int:notification_id>/', views.admin_notification_view, name='admin_notification_view'),
     path('notifications/<int:notification_id>/delete/', views.admin_notification_delete, name='admin_notification_delete'),
 
-    path('profile/', views.admin_profile, name='admin_profile'),
+        path('profile/', views.admin_profile, name='admin_profile'),
     path('profile/update/', views.admin_profile_update, name='admin_profile_update'),
-    path('profile/change-password/', views.admin_change_password, name='admin_change_password'),  
+    path('profile/change-password/', views.admin_change_password, name='admin_change_password'), 
 ]

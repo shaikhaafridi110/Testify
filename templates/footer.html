@@ -1,4 +1,4 @@
-```html
+{% load static %}
 <footer class="site-footer">
   <div class="container">
 
@@ -22,11 +22,12 @@
         <h4>Quick Links</h4>
         <ul>
           <li><a href="{% url 'index' %}">Home</a></li>
-          <li><a href="#">About Us</a></li>
-          <li><a href="#">Features</a></li>
-          <li><a href="#">Exams</a></li>
+          <li><a href="{% url 'about' %}">About Us</a></li>
+          <li><a href="{% url 'features' %}">Features</a></li>
+          <li><a href="{% url 'exams' %}">Exams</a></li>
+          <!-- Leaderboard has no view yet -->
           <li><a href="#">Leaderboard</a></li>
-          <li><a href="#">Contact</a></li>
+          <li><a href="{% url 'contact' %}">Contact</a></li>
         </ul>
       </div>
 
@@ -34,12 +35,12 @@
       <div class="footer-col">
         <h4>Explore Testify</h4>
         <ul>
+          <li><a href="{% url 'how_it_works' %}">How It Works</a></li>
+          <!-- These panels don't have views/urls yet either -->
           <li><a href="#">My Exams</a></li>
           <li><a href="#">My Results</a></li>
           <li><a href="#">Achievements</a></li>
-          <li><a href="#">Practice Quiz</a></li>
           <li><a href="#">FAQ</a></li>
-          <li><a href="#">Help Center</a></li>
         </ul>
       </div>
 
@@ -151,4 +152,3 @@
 
   </div>
 </footer>
-```
