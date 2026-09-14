@@ -1,0 +1,149 @@
+{% extends 'master.html' %}
+
+{% block title %}Complete your profile — Testify{% endblock %}
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<main class="auth-wrap">
+  <div class="auth-card" data-reveal="scale">
+    <div class="card">
+      <div class="auth-head">
+        <h1>Almost there</h1>
+        <p>We've created your account for {{ email }}. Just a couple more details.</p>
+      </div>
+
+      {% if messages %}
+        <div class="form-messages" style="margin-bottom:var(--space-4);">
+          {% for message in messages %}
+            <div class="cp-alert cp-alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+              <span>{{ message }}</span>
+              <button type="button" class="cp-alert-close" aria-label="Close">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'complete_profile' %}" novalidate id="cp-form">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="cp-name">Full name<span class="req">*</span></label>
+          <input type="text" id="cp-name" name="name" class="form-control" value="{{ name|default:'' }}" required autofocus />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cp-phone">Phone<span class="req">*</span></label>
+          <input type="tel" id="cp-phone" name="phone" class="form-control" value="{{ phone|default:'' }}" required />
+        </div>
+
+        {% if needs_password %}
+        <div class="form-group">
+          <label class="form-label" for="cp-password">Password<span class="req">*</span></label>
+          <input type="password" id="cp-password" name="password" class="form-control" required minlength="8" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cp-confirm-password">Confirm password<span class="req">*</span></label>
+          <input type="password" id="cp-confirm-password" name="confirm_password" class="form-control" required minlength="8" />
+          <small id="cp-match-msg" style="display:block;margin-top:var(--space-2);"></small>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="cp-show-password" style="width:auto;" />
+          <label class="form-label" for="cp-show-password" style="margin:0;cursor:pointer;">Show password</label>
+        </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="cp-submit-btn">Finish setting up</button>
+      </form>
+    </div>
+  </div>
+</main>
+
+{% block style %}
+<style>
+  .cp-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 12px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-radius: 10px;
+    margin-bottom: var(--space-2, 8px);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+  }
+  .cp-alert-danger {
+    background: #fdeaea;
+    color: #b3261e;
+    border-color: #f4c7c3;
+  }
+  .cp-alert-success {
+    background: #e8f7ee;
+    color: #157347;
+    border-color: #bfe6cc;
+  }
+  .cp-alert-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 0 0 0 var(--space-2, 8px);
+  }
+  .cp-alert-close:hover {
+    opacity: 1;
+  }
+</style>
+{% endblock %}
+
+<script>
+  document.querySelectorAll('.cp-alert-close').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.closest('.cp-alert').remove();
+    });
+  });
+
+  {% if needs_password %}
+  (function () {
+    var pwd = document.getElementById('cp-password');
+    var confirm = document.getElementById('cp-confirm-password');
+    var showToggle = document.getElementById('cp-show-password');
+    var matchMsg = document.getElementById('cp-match-msg');
+    var form = document.getElementById('cp-form');
+
+    function checkMatch() {
+      if (!confirm.value) {
+        matchMsg.textContent = '';
+        return;
+      }
+      if (pwd.value === confirm.value) {
+        matchMsg.textContent = 'Passwords match.';
+        matchMsg.style.color = '#157347';
+      } else {
+        matchMsg.textContent = 'Passwords do not match.';
+        matchMsg.style.color = '#b3261e';
+      }
+    }
+
+    pwd.addEventListener('input', checkMatch);
+    confirm.addEventListener('input', checkMatch);
+
+    showToggle.addEventListener('change', function () {
+      var type = showToggle.checked ? 'text' : 'password';
+      pwd.type = type;
+      confirm.type = type;
+    });
+
+    form.addEventListener('submit', function (e) {
+      if (pwd.value !== confirm.value) {
+        e.preventDefault();
+        matchMsg.textContent = 'Passwords do not match.';
+        matchMsg.style.color = '#b3261e';
+        confirm.focus();
+      }
+    });
+  })();
+  {% endif %}
+</script>
+{% endblock %}

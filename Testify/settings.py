@@ -36,6 +36,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "django.contrib.sites", 
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+
+
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,6 +53,10 @@ INSTALLED_APPS = [
     'adminpanel',
     'userpanel',
 ]
+
+
+SITE_ID = 1
+
 AUTH_USER_MODEL = 'adminpanel.User'
 
 LOGIN_URL = "login" 
@@ -61,7 +73,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
 
-
+    'allauth.account.middleware.AccountMiddleware',
     'adminpanel.middleware.AdminAccessMiddleware',
 ]
 
@@ -79,6 +91,10 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'adminpanel.context_processors.contact_badge',
+
+
+
+               
             ],
         },
     },
@@ -172,3 +188,46 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+
+
+AUTHENTICATION_BACKENDS = [
+    "adminpanel.backends.StatusAwareBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+#google autentication
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+ACCOUNT_ADAPTER = "adminpanel.adapters.MyAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "adminpanel.adapters.MySocialAccountAdapter"
+
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "secret": GOOGLE_CLIENT_SECRET,
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    },
+}
+
+SOCIALACCOUNT_ADAPTER = "adminpanel.adapters.MySocialAccountAdapter"
+LOGIN_REDIRECT_URL = "/index/"

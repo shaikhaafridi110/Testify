@@ -1,0 +1,84 @@
+{% extends 'master.html' %}
+{% block title %}Verify code — Testify{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<main class="auth-wrap">
+  <div class="auth-card" data-reveal="scale">
+    <div class="card">
+      <div class="auth-head">
+        <h1>Verify your account</h1>
+        <p>We've sent a 6-digit code to {{ email }}.</p>
+      </div>
+
+      {% if messages %}
+        <div class="form-messages" style="margin-bottom:var(--space-4);">
+          {% for message in messages %}
+            <div class="cp-alert cp-alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+              <span>{{ message }}</span>
+              <button type="button" class="cp-alert-close" aria-label="Close">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'otp_verify' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="otp-code">Verification code</label>
+          <input type="text" id="otp-code" name="otp" class="form-control" maxlength="6" required autofocus />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Verify</button>
+      </form>
+
+      <p class="auth-alt">Didn't get it? <a href="{% url 'otp_resend' %}">Resend code</a></p>
+    </div>
+  </div>
+</main>
+
+<style>
+  .cp-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 12px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-radius: 10px;
+    margin-bottom: var(--space-2, 8px);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+  }
+  .cp-alert-danger {
+    background: #fdeaea;
+    color: #b3261e;
+    border-color: #f4c7c3;
+  }
+  .cp-alert-success {
+    background: #e8f7ee;
+    color: #157347;
+    border-color: #bfe6cc;
+  }
+  .cp-alert-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 0 0 0 var(--space-2, 8px);
+  }
+  .cp-alert-close:hover {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  document.querySelectorAll('.cp-alert-close').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.closest('.cp-alert').remove();
+    });
+  });
+</script>
+{% endblock %}

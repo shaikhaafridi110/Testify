@@ -35,12 +35,13 @@
       <form method="post" action="{% url 'login' %}" data-validate novalidate>
         {% csrf_token %}
         <div class="form-group">
-          <label class="form-label" for="l-email">Email or username<span class="req">*</span></label>
+          <label class="form-label" for="l-email">Email<span class="req">*</span></label>
           <div class="input-group">
             <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
-            <input type="text" id="l-email" name="email" class="form-control" placeholder="you@example.com" required />
+            <input type="email" id="l-email" name="email" class="form-control" placeholder="you@example.com" required />
           </div>
-          <div class="form-error">Please enter your email or username.</div>
+          <div class="form-error">Please enter your email.</div>
+          <p style="font-size:0.8rem;color:var(--text-muted,#888);margin-top:var(--space-1);">New here? Just sign in with any email — we'll set up your account automatically.</p>
         </div>
         <div class="form-group">
           <label class="form-label" for="l-pw">Password<span class="req">*</span></label>
@@ -55,11 +56,11 @@
           <label class="checkbox"><input type="checkbox" name="remember" /> Remember me</label>
           <a href="#" class="text-sm">Forgot password?</a>
         </div>
-        <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Continue</button>
       </form>
 
       <div class="divider">or</div>
-      <a href="#" class="btn btn-secondary btn-block google-btn">
+      <a href="{% url 'google_login' %}" class="btn btn-secondary btn-block google-btn">
         <svg width="18" height="18" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82z"></path>
           <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.91l-3.88-3c-1.08.73-2.46 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.94H1.28v3.1A12 12 0 0 0 12 24z"></path>
@@ -72,13 +73,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path><path d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5"></path></svg>
         <span>Student enrollment login</span>
       </a>
-
-      <p class="auth-alt">Don't have an account? <a href="#">Create one</a></p>
     </div>
   </div>
 </main>
-{% endblock %}
-
-{% block extra_js %}
-
 {% endblock %}

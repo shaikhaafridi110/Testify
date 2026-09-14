@@ -1,83 +1,240 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.utils import timezone
-from adminpanel.models import User, Exam, UserExamAttempt, Contact
-
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
 from django.http import Http404
-from adminpanel.models import Exam, Question, QuestionOption, UserExamAttempt, UserExamAnswer
+from django.urls import reverse
+from django.utils import timezone
+
+from adminpanel.models import User, Exam, UserExamAttempt, Contact, Question, QuestionOption, UserExamAnswer
 from adminpanel.signals import recalculate_attempt
+
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+
+from adminpanel.models import User
+
+
+def _generate_and_send_otp(user, purpose="login_verification"):
+    code = f"{random.randint(0, 999999):06d}"
+    user.otp = code
+    user.otp_expires_at = timezone.now() + timezone.timedelta(minutes=10)
+    user.otp_purpose = purpose
+    user.otp_attempts = 0
+    user.save(update_fields=["otp", "otp_expires_at", "otp_purpose", "otp_attempts"])
+
+    send_mail(
+        subject="Your Testify verification code",
+        message=f"Your verification code is {code}. It expires in 10 minutes.",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+    )
+
+
+def _redirect_for_role(request, user):
+    if user.role == "admin":
+        return redirect("admin_dashboard")
+    if user.role == "teacher":
+        info = getattr(user, "teacher_info", None)
+        if not info or info.approval_status != "approved":
+            messages.error(request, "Your teacher account is still pending admin approval.")
+            return redirect("login")
+    return redirect("index")
 
 
 @login_required
 def logout_view(request):
-    """
-    Logs the current user out and sends them back to the login page.
-    GET is enough here since this is only ever reached via a link/button
-    click, not a form — no sensitive data is being submitted.
-    """
+    user = request.user
+    user.status = "inactive"
+    user.save(update_fields=["status"])
+
     logout(request)
     messages.success(request, "You have been signed out.")
     return redirect("login")
 
 
+
 def login_view(request):
     """
-    Handles login for admin / teacher / user in one form.
-    USERNAME_FIELD on the custom User model is 'email', so
-    authenticate() is called with username=email.
-
-    Redirect rules:
-      - admin   -> 'admin_dashboard'
-      - teacher -> no teacher UI yet, so send to the same place as 'user'
-      - user    -> 'userpanel:dashboard'
+    Single email+password form does double duty:
+      - email exists in DB  -> normal login (with OTP step if inactive)
+      - email doesn't exist -> auto-create the user right here with just
+        email+password, then send them to complete_profile for name/phone
+        (email is never asked again since we already have it).
     """
     if request.user.is_authenticated:
-        if request.user.role == "admin":
-            return redirect("admin_dashboard")
-        return redirect("index")
+        return _redirect_for_role(request, request.user)
+
     if request.method == "POST":
-        email = request.POST.get("email", "").strip()
+        email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "")
 
-        user = authenticate(request, username=email, password=password)
+        if not email or not password:
+            messages.error(request, "Please enter both email and password.")
+            return redirect("login")
 
-        if user is not None:
-            if user.status != "active":
-                messages.error(request, "Your account is not active. Please contact support.")
-                return redirect("login")
+        user = User.objects.filter(email__iexact=email).first()
 
-            login(request, user)
+        # ---------- EMAIL NOT IN DB: auto-create, go collect the rest ----------
+        if user is None:
+            user = User(email=email, name="", role="user", status="active")
+            user.set_password(password)
+            user.save()
 
-            if user.role == "admin":
-                return redirect("admin_dashboard")
+            request.session["complete_profile_user_id"] = user.pk
+            return redirect("complete_profile")
 
-            # teacher has no dedicated dashboard template yet,
-            # so fall through to the regular user dashboard
-            return redirect("index")
+        # ---------- EMAIL EXISTS: normal login path ----------
+        if not user.check_password(password):
+            messages.error(request, "Invalid email or password.")
+            return redirect("login")
 
-        messages.error(request, "Invalid email or password.")
-        return redirect("login")
+        if user.status == "blocked":
+            messages.error(request, "Your account has been blocked. Please contact support.")
+            return redirect("login")
+
+        if user.status == "inactive":
+            _generate_and_send_otp(user, purpose="login_verification")
+            request.session["otp_user_id"] = user.pk
+            messages.success(request, "We've emailed you a verification code.")
+            return redirect("otp_verify")
+
+        login(request, user, backend="adminpanel.backends.StatusAwareBackend")
+        return _redirect_for_role(request, user)
 
     return render(request, "login.html")
+
+def complete_profile(request):
+    user_id = request.session.get("complete_profile_user_id")
+    if not user_id:
+        return redirect("login")
+
+    user = get_object_or_404(User, pk=user_id)
+    name_suggestion = request.session.get("complete_profile_name_suggestion", "")
+    needs_password = not user.has_usable_password()
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+
+        form_context = {
+            "email": user.email,
+            "name": name,
+            "phone": phone,
+            "needs_password": needs_password,
+        }
+
+        if not name:
+            messages.error(request, "Please enter your name.")
+            return render(request, "complete_profile.html", form_context)
+
+        if not phone:
+            messages.error(request, "Please enter your phone number.")
+            return render(request, "complete_profile.html", form_context)
+
+        if User.objects.filter(phone=phone).exclude(pk=user.pk).exists():
+            messages.error(request, "That phone number is already in use.")
+            return render(request, "complete_profile.html", form_context)
+
+        if needs_password:
+            if not password or not confirm_password:
+                messages.error(request, "Please choose a password.")
+                return render(request, "complete_profile.html", form_context)
+            if len(password) < 8:
+                messages.error(request, "Password must be at least 8 characters.")
+                return render(request, "complete_profile.html", form_context)
+            if password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+                return render(request, "complete_profile.html", form_context)
+
+        user.name = name
+        user.phone = phone
+        update_fields = ["name", "phone"]
+
+        if needs_password:
+            user.set_password(password)
+            update_fields.append("password")
+
+        user.save(update_fields=update_fields)
+
+        del request.session["complete_profile_user_id"]
+        request.session.pop("complete_profile_name_suggestion", None)
+
+        login(request, user, backend="adminpanel.backends.StatusAwareBackend")
+        messages.success(request, "Welcome to Testify!")
+        return redirect("index")
+
+    return render(request, "complete_profile.html", {
+        "email": user.email,
+        "name": name_suggestion,
+        "needs_password": needs_password,
+    })
+
+
+
+def otp_verify(request):
+    user_id = request.session.get("otp_user_id")
+    if not user_id:
+        return redirect("login")
+    user = get_object_or_404(User, pk=user_id)
+
+    if request.method == "POST":
+        code = request.POST.get("otp", "").strip()
+
+        if not user.otp or not user.otp_expires_at or timezone.now() > user.otp_expires_at:
+            messages.error(request, "This code has expired. Please request a new one.")
+            return redirect("otp_verify")
+        if user.otp_attempts >= 5:
+            messages.error(request, "Too many attempts. Please request a new code.")
+            return redirect("otp_verify")
+        if code != user.otp:
+            user.otp_attempts += 1
+            user.save(update_fields=["otp_attempts"])
+            messages.error(request, "Incorrect code. Please try again.")
+            return redirect("otp_verify")
+
+        user.status = "active"
+        user.otp = None
+        user.otp_expires_at = None
+        user.otp_verified_at = timezone.now()
+        user.otp_attempts = 0
+        user.save(update_fields=["status", "otp", "otp_expires_at", "otp_verified_at", "otp_attempts"])
+
+        del request.session["otp_user_id"]
+        login(request, user, backend="adminpanel.backends.StatusAwareBackend")
+        return _redirect_for_role(request, user)
+
+    return render(request, "otp_verify.html", {"email": user.email})
+
+
+def otp_resend(request):
+    user_id = request.session.get("otp_user_id")
+    if not user_id:
+        return redirect("login")
+    user = get_object_or_404(User, pk=user_id)
+    _generate_and_send_otp(user, purpose="login_verification")
+    messages.success(request, "A new code has been sent to your email.")
+    return redirect("otp_verify")
+
+
+
+
+
 
 
 def _platform_stats():
     """
     Shared stat numbers for the public marketing pages (homepage + about).
-    Pulled live from the DB rather than hardcoded:
-      - students -> role='user'
-      - teachers -> role='teacher' AND approved (unapproved/rejected
-        applicants shouldn't be counted as "teachers on the platform")
-      - exams    -> every exam ever created (admin-owned + teacher-owned)
-      - attempts -> every exam attempt ever started, used in place of a
-        fabricated "uptime %" — this schema has no uptime/monitoring data,
-        so attempts is a real number instead of a made-up one.
     """
     return {
         "total_students": User.objects.filter(role="user").count(),
@@ -91,36 +248,23 @@ def _platform_stats():
 
 
 def index(request):
-    """
-    Renders the public homepage with live platform stats (same numbers
-    shown on About — see _platform_stats for what each counts).
-    """
+    """Renders the public homepage with live platform stats."""
     return render(request, "index.html", _platform_stats())
 
 
 def about(request):
-    """
-    Renders the public About page with live platform stats (see
-    _platform_stats for what each counts).
-    """
+    """Renders the public About page with live platform stats."""
     return render(request, "about.html", _platform_stats())
 
 
 def features(request):
-    """
-    Renders the public Features page. Fully static — no context, no db.
-    """
+    """Renders the public Features page. Fully static — no context, no db."""
     return render(request, "features.html")
 
 
 def how_it_works(request):
-    """
-    Renders the public How It Works page. Fully static — no context, no db.
-    """
+    """Renders the public How It Works page. Fully static — no context, no db."""
     return render(request, "how-it-works.html")
-
-
-
 
 
 @login_required
@@ -128,9 +272,8 @@ def exams(request):
     """
     Public Exams page, split into two sections for a logged-in user:
       - completed_exams: attempt.status == 'submitted' -> View Result
-      - exams (paginated, as before): everything else -> enroll/resume,
-        plus the existing upcoming / closed-with-no-attempt / sign-in states.
-    Anonymous users only ever see the second section.
+      - exams (paginated): everything else -> enroll/resume, plus the
+        existing upcoming / closed-with-no-attempt / sign-in states.
     """
     now = timezone.now()
 
@@ -188,17 +331,6 @@ def exams(request):
     })
 
 
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import Http404
-from django.urls import reverse
-from django.utils import timezone
-
-from adminpanel.models import Exam, Question, QuestionOption, UserExamAttempt, UserExamAnswer
-from adminpanel.signals import recalculate_attempt
-
-
 @login_required
 def dashboard(request):
     return render(request, "userpanel/dashboard.html")
@@ -210,9 +342,7 @@ def enroll_exam(request, exam_id):
     - No attempt yet -> create one (status='started'), go to question 1.
     - Attempt exists and 'submitted' -> already finished, go to result.
     - Attempt exists and 'started' -> resume at the first question that
-      has no UserExamAnswer row yet (never visited). Skipped questions
-      DO have a row (selected_option=None), so they're correctly treated
-      as "visited" and not re-shown as the resume point.
+      has no UserExamAnswer row yet (never visited).
     """
     exam = get_object_or_404(Exam, pk=exam_id)
     attempt = UserExamAttempt.objects.filter(exam=exam, user=request.user).first()
@@ -244,21 +374,6 @@ def enroll_exam(request, exam_id):
 def exam_attempt(request, attempt_id):
     """
     One question per page, position tracked via ?q=<1-indexed>.
-
-    Every visited question leaves behind exactly one UserExamAnswer row:
-      - answered  -> selected_option is set
-      - skipped   -> selected_option is explicitly None
-      - unvisited -> no row at all
-    This is what makes Attempted / Skipped / Remaining three accurate,
-    non-overlapping counts.
-
-    - Previous: saves a selection if one was made (does NOT create a skip
-      row on its own), then steps back.
-    - Skip: writes a row with selected_option=None, steps forward.
-      Not offered on the last question — a spoofed skip POST there is
-      just ignored and re-renders the same question.
-    - Next: requires a selection — without one it re-renders with an error.
-    - Submit / submit_confirm: only reachable on the last question.
     """
     attempt = get_object_or_404(UserExamAttempt, pk=attempt_id, user=request.user)
 
@@ -364,9 +479,7 @@ def exam_result(request, attempt_id):
     """
     Full per-question review — every question in the exam, each with its
     options, the user's pick, the correct option, and a
-    correct / incorrect / skipped status. Summary numbers (score,
-    correct/wrong/skipped, percentage, result_status) come straight off
-    the attempt row via adminpanel.signals.
+    correct / incorrect / skipped status.
     """
     attempt = get_object_or_404(UserExamAttempt, pk=attempt_id, user=request.user)
 
@@ -406,15 +519,9 @@ def exam_result(request, attempt_id):
     })
 
 
-
 def contact(request):
     """
     Renders the public Contact page and handles the contact form submission.
-
-    On POST: validates required fields, saves a Contact record (status
-    defaults to 'new' per the model), shows a success message, and
-    redirects back to the contact page (redirect-after-post, so a
-    refresh doesn't resubmit the form).
     """
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
