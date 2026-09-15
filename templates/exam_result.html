@@ -2,101 +2,424 @@
 {% block title %}Result — {{ exam.title }}{% endblock %}
 
 {% block style %}
-.review-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-.review-option.correct {
-  border-color: var(--color-success, #16a34a);
-  background: rgba(22, 163, 74, 0.08);
-}
-.review-option.selected-wrong {
-  border-color: var(--color-error, #e5484d);
-  background: rgba(229, 72, 77, 0.08);
-}
+  .review-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.1));
+    border-radius: 10px;
+    transition: border-color .2s ease, background .2s ease;
+    background: var(--card-bg, #fff);
+  }
+  .review-option.correct {
+    border-color: rgba(22,163,74,.4);
+    background: rgba(22,163,74,.05);
+  }
+  .review-option.selected-wrong {
+    border-color: rgba(229,72,77,.4);
+    background: rgba(229,72,77,.05);
+  }
+  .review-option .option-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    background: var(--bg-muted, #f0f0f0);
+    color: var(--text-muted, #666);
+    flex-shrink: 0;
+  }
+  .review-option.correct .option-key {
+    background: rgba(22,163,74,.12);
+    color: #16a34a;
+  }
+  .review-option.selected-wrong .option-key {
+    background: rgba(229,72,77,.12);
+    color: #e5484d;
+  }
+  .review-option .option-text {
+    flex: 1;
+    font-size: .92rem;
+    line-height: 1.5;
+  }
+  .review-option .option-tag {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 3px 10px;
+    border-radius: 100px;
+    flex-shrink: 0;
+  }
+  .tag-correct {
+    background: rgba(22,163,74,.1);
+    color: #16a34a;
+  }
+  .tag-your-answer {
+    background: rgba(229,72,77,.1);
+    color: #e5484d;
+  }
 {% endblock %}
 
 {% block content %}
 <main>
-  <section class="section-sm">
-    <div class="container" style="max-width:800px;">
+  <section class="section-sm" style="padding-top:var(--space-8);">
+    <div class="container" style="max-width:820px;">
 
-      <div class="card" style="padding:var(--space-6);text-align:center;margin-bottom:var(--space-5);">
-        {% if attempt.result_status == 'pass' %}
-          <span class="badge badge-success badge-dot" style="font-size:1rem;">Pass</span>
-        {% else %}
-          <span class="badge badge-error badge-dot" style="font-size:1rem;">Fail</span>
-        {% endif %}
-        <h1 style="margin:var(--space-3) 0;">{{ exam.title }}</h1>
-        <p class="text-muted">Score: {{ attempt.score }} / {{ exam.total_marks }} &nbsp;·&nbsp; {{ attempt.percentage }}%</p>
-      </div>
-
-      <div class="exam-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:var(--space-6);">
-        <div class="card" style="padding:var(--space-3);text-align:center;">
-          <div class="text-xs text-muted">Correct</div>
-          <div style="font-size:1.4rem;">{{ attempt.correct_answers }}</div>
+      <!-- Result header -->
+      <div class="result-hero card" data-reveal>
+        <div class="result-hero-top">
+          {% if attempt.result_status == 'pass' %}
+            <span class="result-badge result-badge-pass">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Pass
+            </span>
+          {% else %}
+            <span class="result-badge result-badge-fail">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              Fail
+            </span>
+          {% endif %}
         </div>
-        <div class="card" style="padding:var(--space-3);text-align:center;">
-          <div class="text-xs text-muted">Incorrect</div>
-          <div style="font-size:1.4rem;">{{ attempt.wrong_answers }}</div>
+        <h1 class="result-title">{{ exam.title }}</h1>
+        <div class="result-score-row">
+          <span class="result-score-big">{{ attempt.percentage }}%</span>
+          <span class="result-score-detail">{{ attempt.score }} / {{ exam.total_marks }} marks</span>
         </div>
-        <div class="card" style="padding:var(--space-3);text-align:center;">
-          <div class="text-xs text-muted">Skipped</div>
-          <div style="font-size:1.4rem;">{{ attempt.skipped_answers }}</div>
-        </div>
-        <div class="card" style="padding:var(--space-3);text-align:center;">
-          <div class="text-xs text-muted">Percentage</div>
-          <div style="font-size:1.4rem;">{{ attempt.percentage }}%</div>
+        <div class="result-progress-track">
+          <div class="result-progress-fill {% if attempt.percentage >= 75 %}fill-high{% elif attempt.percentage >= 50 %}fill-mid{% else %}fill-low{% endif %}" style="width:{{ attempt.percentage }}%;"></div>
         </div>
       </div>
 
-      <h3 style="margin-bottom:var(--space-4);">Full review</h3>
-      <div style="display:flex;flex-direction:column;gap:var(--space-4);margin-bottom:var(--space-6);">
+      <!-- Stat cards -->
+      <div class="result-stats-grid" data-reveal>
+        <div class="result-stat-card stat-correct">
+          <div class="result-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="result-stat-value">{{ attempt.correct_answers }}</div>
+          <div class="result-stat-label">Correct</div>
+        </div>
+        <div class="result-stat-card stat-incorrect">
+          <div class="result-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </div>
+          <div class="result-stat-value">{{ attempt.wrong_answers }}</div>
+          <div class="result-stat-label">Incorrect</div>
+        </div>
+        <div class="result-stat-card stat-skipped">
+          <div class="result-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+          </div>
+          <div class="result-stat-value">{{ attempt.skipped_answers }}</div>
+          <div class="result-stat-label">Skipped</div>
+        </div>
+        <div class="result-stat-card stat-percent">
+          <div class="result-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+          </div>
+          <div class="result-stat-value">{{ attempt.percentage }}%</div>
+          <div class="result-stat-label">Percentage</div>
+        </div>
+      </div>
+
+      <!-- Full review -->
+      <div class="review-header" data-reveal>
+        <h2 class="review-title">Full review</h2>
+        <p class="review-subtitle">Question-by-question breakdown</p>
+      </div>
+
+      <div class="review-list" data-stagger>
         {% for item in full_review %}
-        <div class="card" style="padding:var(--space-4);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;gap:var(--space-2);">
-            <strong>Q{{ forloop.counter }}. {{ item.question.question_text }}</strong>
+        <div class="card review-card" data-reveal>
+          <div class="review-card-top">
+            <span class="review-q-num">Q{{ forloop.counter }}</span>
+            <span class="review-q-text">{{ item.question.question_text }}</span>
             {% if item.status == 'correct' %}
-              <span class="badge badge-success">Correct</span>
+              <span class="badge badge-success badge-status">Correct</span>
             {% elif item.status == 'incorrect' %}
-              <span class="badge badge-error">Incorrect</span>
+              <span class="badge badge-error badge-status">Incorrect</span>
             {% else %}
-              <span class="badge badge-warning">Skipped</span>
+              <span class="badge badge-warning badge-status">Skipped</span>
             {% endif %}
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+          <div class="review-options">
             {% for option in item.question.options.all %}
               <div class="review-option
                 {% if option.is_correct %} correct{% endif %}
                 {% if item.selected_option_id == option.id and not option.is_correct %} selected-wrong{% endif %}">
-                <span class="badge{% if option.is_correct %} badge-primary{% endif %}">{{ option.option_key }}</span>
-                <span>{{ option.option_text }}</span>
+                <span class="option-key">{{ option.option_key }}</span>
+                <span class="option-text">{{ option.option_text }}</span>
                 {% if option.is_correct %}
-                  <span class="badge badge-success" style="margin-left:auto;">Correct answer</span>
+                  <span class="option-tag tag-correct">Correct answer</span>
                 {% elif item.selected_option_id == option.id %}
-                  <span class="badge badge-error" style="margin-left:auto;">Your answer</span>
+                  <span class="option-tag tag-your-answer">Your answer</span>
                 {% endif %}
               </div>
             {% endfor %}
           </div>
 
           {% if item.status == 'skipped' %}
-            <p class="text-xs text-muted" style="margin-top:var(--space-2);margin-bottom:0;">You skipped this question.</p>
+            <p class="review-skip-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              You skipped this question.
+            </p>
           {% endif %}
         </div>
         {% endfor %}
       </div>
 
-      <div class="exam-footer" style="justify-content:center;gap:var(--space-3);">
-        <a href="{% url 'exams' %}" class="btn btn-primary btn-sm">Back to Exams</a>
+      <!-- Footer -->
+      <div class="result-footer" data-reveal>
+        <a href="{% url 'exams' %}" class="btn btn-primary btn-result-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Back to Exams
+        </a>
       </div>
 
     </div>
   </section>
 </main>
+
+<style>
+  /* ---- Result hero ---- */
+  .result-hero {
+    padding: var(--space-7) var(--space-6) !important;
+    text-align: center;
+    margin-bottom: var(--space-5);
+    position: relative;
+    overflow: hidden;
+  }
+  .result-hero-top {
+    margin-bottom: var(--space-3);
+  }
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: .9rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+  .result-badge-pass {
+    background: rgba(22,163,74,.1);
+    color: #16a34a;
+    border: 1.5px solid rgba(22,163,74,.25);
+  }
+  .result-badge-fail {
+    background: rgba(229,72,77,.1);
+    color: #e5484d;
+    border: 1.5px solid rgba(229,72,77,.25);
+  }
+  .result-title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin: 0 0 var(--space-4);
+  }
+  .result-score-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .result-score-big {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    line-height: 1;
+  }
+  .result-score-detail {
+    font-size: 1rem;
+    color: var(--text-muted, #888);
+    font-weight: 500;
+  }
+  .result-progress-track {
+    height: 8px;
+    background: var(--bg-muted, #f0f0f0);
+    border-radius: 100px;
+    overflow: hidden;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .result-progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+  .fill-high { background: linear-gradient(90deg, #16a34a, #22c55e); }
+  .fill-mid { background: linear-gradient(90deg, #d97706, #f59e0b); }
+  .fill-low { background: linear-gradient(90deg, #dc2626, #ef4444); }
+
+  /* ---- Stat cards ---- */
+  .result-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-7);
+  }
+  .result-stat-card {
+    padding: var(--space-4) var(--space-3);
+    text-align: center;
+    border-radius: 12px;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.07));
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .result-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+  }
+  .result-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    margin-bottom: var(--space-2);
+  }
+  .stat-correct .result-stat-icon { background: rgba(22,163,74,.1); color: #16a34a; }
+  .stat-incorrect .result-stat-icon { background: rgba(229,72,77,.1); color: #e5484d; }
+  .stat-skipped .result-stat-icon { background: rgba(245,158,11,.1); color: #d97706; }
+  .stat-percent .result-stat-icon { background: rgba(37,72,214,.1); color: #2548d6; }
+  .result-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+  }
+  .result-stat-label {
+    font-size: .78rem;
+    color: var(--text-muted, #888);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+  }
+
+  /* ---- Review section ---- */
+  .review-header {
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border, rgba(0,0,0,.07));
+  }
+  .review-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 0;
+  }
+  .review-subtitle {
+    font-size: .85rem;
+    color: var(--text-muted, #888);
+    margin: 4px 0 0;
+  }
+
+  .review-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-7);
+  }
+  .review-card {
+    padding: var(--space-5) !important;
+    transition: box-shadow .2s ease;
+  }
+  .review-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,.05);
+  }
+  .review-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .review-q-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: var(--bg-muted, #f0f0f0);
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--text-muted, #666);
+    flex-shrink: 0;
+  }
+  .review-q-text {
+    flex: 1;
+    font-size: .95rem;
+    font-weight: 600;
+    line-height: 1.5;
+    min-width: 200px;
+  }
+  .badge-status {
+    flex-shrink: 0;
+    font-size: .75rem;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-weight: 600;
+  }
+
+  .review-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .review-skip-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--space-3);
+    margin-bottom: 0;
+    font-size: .82rem;
+    color: var(--text-muted, #999);
+    font-style: italic;
+  }
+
+  /* ---- Footer ---- */
+  .result-footer {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-4) 0 var(--space-6);
+  }
+  .btn-result-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    font-size: .95rem;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: transform .15s ease, box-shadow .2s ease, gap .2s ease;
+  }
+  .btn-result-back:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37,72,214,.3);
+    gap: 12px;
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 700px) {
+    .result-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 500px) {
+    .result-hero { padding: var(--space-5) var(--space-4) !important; }
+    .result-score-big { font-size: 2rem; }
+    .review-card { padding: var(--space-4) !important; }
+    .review-card-top { flex-direction: column; align-items: flex-start; }
+  }
+</style>
 {% endblock %}

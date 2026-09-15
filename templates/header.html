@@ -2,37 +2,220 @@
 <header class="site-header">
   <div class="container header-inner">
     <a href="{% url 'index' %}" class="brand"><span class="brand-mark">T</span><span>Testify</span></a>
+
     <nav class="nav" aria-label="Primary">
       <a href="{% url 'index' %}" class="nav-link{% if request.resolver_match.url_name == 'index' %} active{% endif %}" data-nav>Home</a>
       <a href="{% url 'about' %}" class="nav-link{% if request.resolver_match.url_name == 'about' %} active{% endif %}" data-nav>About</a>
-      <a href="{% url 'features' %}" class="nav-link{% if request.resolver_match.url_name == 'features' %} active{% endif %}" data-nav>Features</a>
-      <a href="{% url 'how_it_works' %}" class="nav-link{% if request.resolver_match.url_name == 'how_it_works' %} active{% endif %}" data-nav>How It Works</a>
       <a href="{% url 'exams' %}" class="nav-link{% if request.resolver_match.url_name == 'exams' %} active{% endif %}" data-nav>Exams</a>
-      <!-- Leaderboard has no view yet — wire it up the same way once it exists. -->
-      <a href="#" class="nav-link" data-nav>Leaderboard</a>
+      <a href="{% url 'leaderboard' %}" class="nav-link{% if request.resolver_match.url_name == 'leaderboard' %} active{% endif %}" data-nav>Leaderboard</a>
       <a href="{% url 'contact' %}" class="nav-link{% if request.resolver_match.url_name == 'contact' %} active{% endif %}" data-nav>Contact</a>
     </nav>
+
     <div class="header-actions">
       <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
       </button>
+
       {% if request.user.is_authenticated %}
         {% if request.user.role == 'admin' %}
-          <!-- Admins get a real dashboard, so it's worth its own button. -->
           <a href="{% url 'admin_dashboard' %}" class="btn btn-primary">Dashboard</a>
         {% endif %}
-        <!-- Teachers/users have no dedicated dashboard yet — their "Dashboard"
-             used to just point back at Home, which the nav already covers.
-             Drop the duplicate button until they have a real one. -->
-        <a href="{% url 'logout' %}" class="btn btn-ghost">Logout</a>
+
+        <div class="account-menu" data-account-menu>
+          <button type="button" class="account-trigger" data-account-trigger aria-haspopup="true" aria-expanded="false">
+            {% if request.user.profile_image %}
+              <span class="account-avatar account-avatar-img">
+                <img src="{{ request.user.profile_image.url }}" alt="{{ request.user.name|default:request.user.email }}">
+              </span>
+            {% else %}
+              <span class="account-avatar">{{ request.user.name|default:request.user.email|first|upper }}</span>
+            {% endif %}
+            <svg class="account-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+
+          <div class="account-dropdown" data-account-dropdown role="menu">
+            <div class="account-dropdown-header">
+              {% if request.user.profile_image %}
+                <span class="account-avatar account-avatar-img account-avatar-lg">
+                  <img src="{{ request.user.profile_image.url }}" alt="{{ request.user.name|default:request.user.email }}">
+                </span>
+              {% else %}
+                <span class="account-avatar account-avatar-lg">{{ request.user.name|default:request.user.email|first|upper }}</span>
+              {% endif %}
+              <span class="account-dropdown-text">
+                <span class="account-name">{{ request.user.name|default:"Welcome" }}</span>
+                <span class="account-email">{{ request.user.email }}</span>
+              </span>
+            </div>
+
+            <!-- No view yet — wire these up once they exist -->
+            <a href="{% url 'profile' %}" class="account-item{% if request.resolver_match.url_name == 'profile' %} active{% endif %}" role="menuitem">Profile</a>
+             <a href="{% url 'completed_exams' %}" class="account-item{% if request.resolver_match.url_name == 'completed_exams' %} active{% endif %}" role="menuitem">Complete Courses</a>
+
+            <a href="{% url 'features' %}" class="account-item{% if request.resolver_match.url_name == 'features' %} active{% endif %}" role="menuitem">Features</a>
+            <a href="{% url 'how_it_works' %}" class="account-item{% if request.resolver_match.url_name == 'how_it_works' %} active{% endif %}" role="menuitem">How It Works</a>
+
+            <div class="account-divider"></div>
+
+            <a href="{% url 'logout' %}" class="account-item account-logout" role="menuitem">Logout</a>
+          </div>
+        </div>
       {% else %}
-        <a href="{% url 'login' %}" class="btn btn-ghost">Sign in</a>
         <a href="{% url 'login' %}" class="btn btn-primary">Get Started</a>
       {% endif %}
+
       <button class="theme-toggle menu-btn" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
     </div>
   </div>
 </header>
+
+<style>
+  .account-menu { position: relative; }
+
+  .account-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color, #e2e2e2);
+    border-radius: 999px;
+    padding: 4px 10px 4px 4px;
+    cursor: pointer;
+  }
+
+  .account-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #2548d6;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .account-avatar-img {
+    background: var(--border-color, #e2e2e2);
+    padding: 0;
+  }
+
+  .account-avatar-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .account-avatar-lg {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .account-caret { transition: transform .15s ease; }
+  .account-menu.is-open .account-caret { transform: rotate(180deg); }
+
+  .account-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px);
+    min-width: 240px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border-color, #e2e2e2);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.12);
+    padding: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity .15s ease, transform .15s ease, visibility .15s;
+    z-index: 50;
+  }
+
+  .account-menu.is-open .account-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .account-dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 10px;
+    border-bottom: 1px solid var(--border-color, #eee);
+    margin-bottom: 6px;
+  }
+
+  .account-dropdown-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .account-name { font-weight: 600; font-size: 14px; }
+  .account-email {
+    font-size: 12px;
+    color: var(--text-muted, #888);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .account-item {
+    display: block;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .account-item:hover,
+  .account-item.active { background: var(--hover-bg, rgba(37,72,214,.08)); }
+
+  .account-divider {
+    height: 1px;
+    background: var(--border-color, #eee);
+    margin: 6px 4px;
+  }
+
+  .account-logout { color: #d64545; }
+  .account-logout:hover { background: rgba(214,69,69,.08); }
+</style>
+
+<script>
+  (function () {
+    var menu = document.querySelector('[data-account-menu]');
+    if (!menu) return;
+    var trigger = menu.querySelector('[data-account-trigger]');
+    var dropdown = menu.querySelector('[data-account-dropdown]');
+
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = menu.classList.toggle('is-open');
+      trigger.setAttribute('aria-expanded', isOpen);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!menu.contains(e.target)) {
+        menu.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        menu.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>

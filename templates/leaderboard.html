@@ -1,0 +1,350 @@
+{% extends 'master.html' %}
+{% load static %}
+
+{% block title %}Leaderboard — Top Performers & Exam Rankings | Testify{% endblock %}
+{% block meta_description %}Explore the Testify leaderboard to see top-performing students ranked by examination results. Filter by exam, search by name, and compare average scores and grades across recent tests.{% endblock %}
+
+{% block social_meta %}
+<meta property="og:title" content="Leaderboard — Top Performers & Exam Rankings | Testify">
+<meta property="og:description" content="See top-performing students ranked by examination results. Filter by exam and search by name on the Testify leaderboard.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{% url 'leaderboard' %}">
+{% endblock %}
+
+{% block style %}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.leaderboard-hero .section-header {
+  max-width: 640px;
+}
+
+.leaderboard-hero .section-subtitle {
+  color: var(--text-muted, #6b7280);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .podium {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .podium .second { order: 2; }
+  .podium .first  { order: 1; }
+  .podium .third  { order: 3; }
+}
+
+.podium-card {
+  text-align: center;
+  padding: var(--space-4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.podium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.podium-card.first {
+  border-top: 4px solid #f5b50a;
+  transform: translateY(-8px);
+}
+
+.podium-card.second {
+  border-top: 4px solid #9ca3af;
+}
+
+.podium-card.third {
+  border-top: 4px solid #b45309;
+}
+
+.podium-card .rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-2);
+  background: var(--surface-2, #f3f4f6);
+  color: var(--text, #111827);
+}
+
+.podium-card.first .rank-badge {
+  background: linear-gradient(135deg, #f5b50a, #f59e0b);
+  color: #fff;
+}
+
+.podium-card.second .rank-badge {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+  color: #fff;
+}
+
+.podium-card.third .rank-badge {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+}
+
+.podium-card .name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+.podium-card .score {
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.data tbody tr:nth-child(even) {
+  background: var(--surface-1, #fafafa);
+}
+
+.data tbody tr:hover {
+  background: var(--surface-2, #f3f4f6);
+}
+
+.rank-cell.top {
+  font-weight: 700;
+  color: var(--primary, #2548d6);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  min-width: 40px;
+  height: 40px;
+  border-radius: var(--radius, 8px);
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--surface, #fff);
+  color: var(--text, #111827);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--primary, #2548d6);
+  color: var(--primary, #2548d6);
+}
+
+.page-btn.active {
+  background: var(--primary, #2548d6);
+  color: #fff;
+  border-color: var(--primary, #2548d6);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .podium-card,
+  .page-btn {
+    transition: none;
+  }
+  .podium-card:hover {
+    transform: none;
+  }
+}
+{% endblock %}
+
+{% block content %}
+<main>
+  <section class="hero leaderboard-hero" style="padding:var(--space-8) 0 var(--space-6);position:relative;">
+    <div class="hero-bg"></div>
+    <div class="container">
+      <div class="section-header" data-reveal style="margin-bottom:var(--space-6);">
+        <span class="eyebrow">Leaderboard</span>
+        <h1 class="hero-title" style="font-size:clamp(2rem,4vw,3rem);">Top performers</h1>
+        <p class="section-subtitle">Rankings generated from result data across recent examinations.</p>
+      </div>
+
+      <form class="toolbar" method="get" action="{% url 'leaderboard' %}" data-reveal role="search" aria-label="Leaderboard filters">
+        <div class="search">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <label for="leaderboard-search" class="visually-hidden">Search by student name or email</label>
+          <input id="leaderboard-search" type="text" name="q" class="form-control" placeholder="Search by student name or email…" value="{{ search }}" autocomplete="off" />
+        </div>
+        <div class="filter">
+          <label for="leaderboard-exam" class="visually-hidden">Filter by exam</label>
+          <select id="leaderboard-exam" class="form-control select" name="exam" aria-label="Filter by exam" onchange="this.form.submit()">
+            <option value="" {% if not exam_filter %}selected{% endif %}>All exams</option>
+            {% for title in exam_titles %}
+              <option value="{{ title }}" {% if exam_filter == title %}selected{% endif %}>{{ title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" style="display:none;" aria-hidden="true" tabindex="-1"></button>
+      </form>
+    </div>
+  </section>
+
+  <section class="section-sm" style="padding-top:0;" aria-label="Leaderboard rankings">
+    <div class="container">
+
+      {% if top3 %}
+      <!-- Podium -->
+      <div class="podium" data-stagger role="list" aria-label="Top three performers">
+        {% for entry in top3 %}
+          {% if entry.rank == 2 %}
+          <div class="card podium-card second" data-reveal role="listitem" aria-label="Rank 2: {{ entry.user.name|default:entry.user.email }}">
+            <div class="rank-badge" aria-hidden="true">2</div>
+            {% if entry.user.profile_image %}
+              <span class="account-avatar account-avatar-img account-avatar-lg" style="margin:0 auto var(--space-2);">
+                <img src="{{ entry.user.profile_image.url }}" alt="{{ entry.user.name|default:entry.user.email }}" loading="lazy">
+              </span>
+            {% else %}
+              <span class="account-avatar account-avatar-lg" style="margin:0 auto var(--space-2);" aria-hidden="true">{{ entry.user.name|default:entry.user.email|first|upper }}</span>
+            {% endif %}
+            <div class="name">{{ entry.user.name|default:entry.user.email }}</div>
+            <div class="score">{{ entry.avg_percentage }}% avg · {{ entry.exams_taken }} exam{{ entry.exams_taken|pluralize }}</div>
+          </div>
+          {% endif %}
+        {% endfor %}
+
+        {% for entry in top3 %}
+          {% if entry.rank == 1 %}
+          <div class="card podium-card first" data-reveal role="listitem" aria-label="Rank 1: {{ entry.user.name|default:entry.user.email }}">
+            <div class="rank-badge" aria-hidden="true">1</div>
+            {% if entry.user.profile_image %}
+              <span class="account-avatar account-avatar-img account-avatar-lg" style="margin:0 auto var(--space-2);">
+                <img src="{{ entry.user.profile_image.url }}" alt="{{ entry.user.name|default:entry.user.email }}" loading="lazy">
+              </span>
+            {% else %}
+              <span class="account-avatar account-avatar-lg" style="margin:0 auto var(--space-2);" aria-hidden="true">{{ entry.user.name|default:entry.user.email|first|upper }}</span>
+            {% endif %}
+            <div class="name">{{ entry.user.name|default:entry.user.email }}</div>
+            <div class="score">{{ entry.avg_percentage }}% avg · {{ entry.exams_taken }} exam{{ entry.exams_taken|pluralize }}</div>
+          </div>
+          {% endif %}
+        {% endfor %}
+
+        {% for entry in top3 %}
+          {% if entry.rank == 3 %}
+          <div class="card podium-card third" data-reveal role="listitem" aria-label="Rank 3: {{ entry.user.name|default:entry.user.email }}">
+            <div class="rank-badge" aria-hidden="true">3</div>
+            {% if entry.user.profile_image %}
+              <span class="account-avatar account-avatar-img account-avatar-lg" style="margin:0 auto var(--space-2);">
+                <img src="{{ entry.user.profile_image.url }}" alt="{{ entry.user.name|default:entry.user.email }}" loading="lazy">
+              </span>
+            {% else %}
+              <span class="account-avatar account-avatar-lg" style="margin:0 auto var(--space-2);" aria-hidden="true">{{ entry.user.name|default:entry.user.email|first|upper }}</span>
+            {% endif %}
+            <div class="name">{{ entry.user.name|default:entry.user.email }}</div>
+            <div class="score">{{ entry.avg_percentage }}% avg · {{ entry.exams_taken }} exam{{ entry.exams_taken|pluralize }}</div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Full table -->
+      <div class="card" style="padding:0;overflow:hidden;" data-reveal>
+        <div class="table-wrap">
+          <table class="data" id="lb-list">
+            <caption class="visually-hidden">Student leaderboard ranked by examination performance</caption>
+            <thead>
+              <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Student</th>
+                <th scope="col">Email</th>
+                {% if exam_filter %}<th scope="col">Score</th>{% else %}<th scope="col">Exams Taken</th><th scope="col">Total Score</th>{% endif %}
+                <th scope="col">{% if exam_filter %}Score %{% else %}Avg %{% endif %}</th>
+                <th scope="col">Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in ranking %}
+              <tr>
+                <td class="rank-cell{% if entry.rank <= 3 %} top{% endif %}">{{ entry.rank }}</td>
+                <td class="cell-main">
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    {% if entry.user.profile_image %}
+                      <span class="account-avatar account-avatar-img">
+                        <img src="{{ entry.user.profile_image.url }}" alt="{{ entry.user.name|default:entry.user.email }}" loading="lazy">
+                      </span>
+                    {% else %}
+                      <span class="account-avatar" aria-hidden="true">{{ entry.user.name|default:entry.user.email|first|upper }}</span>
+                    {% endif %}
+                    {{ entry.user.name|default:"—" }}
+                  </span>
+                </td>
+                <td class="cell-sub">{{ entry.user.email }}</td>
+                {% if exam_filter %}
+                  <td>{{ entry.total_score }}{% if exam_total_marks %}/{{ exam_total_marks }}{% endif %}</td>
+                {% else %}
+                  <td>{{ entry.exams_taken }}</td>
+                  <td>{{ entry.total_score }}</td>
+                {% endif %}
+                <td>{{ entry.avg_percentage }}%</td>
+                <td><span class="badge {{ entry.badge_class }}">{{ entry.grade }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="text-muted" style="text-align:center;padding:2rem 0;">No results yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if ranking.has_other_pages %}
+      <nav class="pagination" aria-label="Leaderboard pagination">
+        <button class="page-btn" {% if not ranking.has_previous %}disabled{% endif %}
+          {% if ranking.has_previous %}onclick="window.location.href='?page={{ ranking.previous_page_number }}&q={{ search|urlencode }}&exam={{ exam_filter|urlencode }}'"{% endif %}
+          aria-label="Previous page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        {% for num in ranking.paginator.page_range %}
+        <button class="page-btn {% if ranking.number == num %}active{% endif %}"
+          onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&exam={{ exam_filter|urlencode }}'"
+          {% if ranking.number == num %}aria-current="page"{% endif %}
+          aria-label="Page {{ num }}">{{ num }}</button>
+        {% endfor %}
+        <button class="page-btn" {% if not ranking.has_next %}disabled{% endif %}
+          {% if ranking.has_next %}onclick="window.location.href='?page={{ ranking.next_page_number }}&q={{ search|urlencode }}&exam={{ exam_filter|urlencode }}'"{% endif %}
+          aria-label="Next page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </nav>
+      {% endif %}
+    </div>
+  </section>
+</main>
+{% endblock %}

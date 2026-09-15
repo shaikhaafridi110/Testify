@@ -7,9 +7,13 @@ from django.db.models import Q
 from django.http import Http404
 from django.urls import reverse
 from django.utils import timezone
-
+from django.db.models import Avg, Count, Sum
 from adminpanel.models import User, Exam, UserExamAttempt, Contact, Question, QuestionOption, UserExamAnswer
 from adminpanel.signals import recalculate_attempt
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.db.models import Avg, Sum, Count
 
 import random
 from django.core.mail import send_mail
@@ -50,6 +54,67 @@ def _redirect_for_role(request, user):
     return redirect("index")
 
 
+
+@login_required
+
+def profile(request):
+    """
+    Logged-in user's profile: view + edit basic info (name, phone, profile image),
+    plus a quick summary of their exam performance.
+    """
+    user = request.user
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        profile_image = request.FILES.get("profile_image")
+
+        errors = []
+
+        if phone:
+            if not phone.isdigit() or len(phone) != 10:
+                errors.append("Phone number must be exactly 10 digits.")
+            elif User.objects.filter(phone=phone).exclude(id=user.id).exists():
+                errors.append("This phone number is already in use by another account.")
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            if name:
+                user.name = name
+            # allow clearing the phone field by submitting it empty
+            user.phone = phone or None
+            if profile_image:
+                user.profile_image = profile_image
+            user.save()
+            messages.success(request, "Profile updated.")
+
+        return redirect("profile")
+
+    attempts = UserExamAttempt.objects.filter(user=user, status="submitted")
+    stats = attempts.aggregate(
+        avg_percentage=Avg("percentage"),
+        total_score=Sum("score"),
+        exams_taken=Count("id"),
+    )
+    exams_taken = stats["exams_taken"] or 0
+    pct = round(stats["avg_percentage"] or 0, 1)
+    grade, badge_class = _grade_for(pct) if exams_taken else (None, None)
+
+    recent_attempts = (
+        attempts.select_related("exam").order_by("-submitted_at")[:5]
+    )
+
+    return render(request, "profile.html", {
+        "avg_percentage": pct,
+        "exams_taken": exams_taken,
+        "total_score": stats["total_score"] or 0,
+        "grade": grade,
+        "badge_class": badge_class,
+        "recent_attempts": recent_attempts,
+    })
+
 @login_required
 def logout_view(request):
     user = request.user
@@ -64,11 +129,9 @@ def logout_view(request):
 
 def login_view(request):
     """
-    Single email+password form does double duty:
+    Single email+password login form.
       - email exists in DB  -> normal login (with OTP step if inactive)
-      - email doesn't exist -> auto-create the user right here with just
-        email+password, then send them to complete_profile for name/phone
-        (email is never asked again since we already have it).
+      - email doesn't exist -> error message, back to login (no auto-create)
     """
     if request.user.is_authenticated:
         return _redirect_for_role(request, request.user)
@@ -83,18 +146,14 @@ def login_view(request):
 
         user = User.objects.filter(email__iexact=email).first()
 
-        # ---------- EMAIL NOT IN DB: auto-create, go collect the rest ----------
+        # ---------- EMAIL NOT IN DB ----------
         if user is None:
-            user = User(email=email, name="", role="user", status="active")
-            user.set_password(password)
-            user.save()
-
-            request.session["complete_profile_user_id"] = user.pk
-            return redirect("complete_profile")
+            messages.error(request, "No account found with that email address.")
+            return redirect("login")
 
         # ---------- EMAIL EXISTS: normal login path ----------
         if not user.check_password(password):
-            messages.error(request, "Invalid email or password.")
+            messages.error(request, "Invalid password.")
             return redirect("login")
 
         if user.status == "blocked":
@@ -111,6 +170,8 @@ def login_view(request):
         return _redirect_for_role(request, user)
 
     return render(request, "login.html")
+
+
 
 def complete_profile(request):
     user_id = request.session.get("complete_profile_user_id")
@@ -267,13 +328,15 @@ def how_it_works(request):
     return render(request, "how-it-works.html")
 
 
-@login_required
 def exams(request):
     """
-    Public Exams page, split into two sections for a logged-in user:
-      - completed_exams: attempt.status == 'submitted' -> View Result
-      - exams (paginated): everything else -> enroll/resume, plus the
-        existing upcoming / closed-with-no-attempt / sign-in states.
+    Public Exams page — shows only exams the user has NOT enrolled in
+    (no attempt at all): upcoming / available / closed-with-no-attempt,
+    plus the sign-in-to-take-exam state for anonymous users.
+
+    Exams the user already has an attempt for (status == 'started' or
+    'submitted') are excluded entirely — completed/in-progress exams no
+    longer appear on this page.
     """
     now = timezone.now()
 
@@ -290,17 +353,19 @@ def exams(request):
 
     status_filter = request.GET.get("status", "").strip()
 
-    my_attempts = {}
+    attempted_exam_ids = set()
     if request.user.is_authenticated:
-        my_attempts = {
-            a.exam_id: a
-            for a in UserExamAttempt.objects.filter(user=request.user)
-        }
+        attempted_exam_ids = set(
+            UserExamAttempt.objects.filter(user=request.user).values_list("exam_id", flat=True)
+        )
 
     available_list = []
-    completed_list = []
 
     for exam_obj in qs:
+        if exam_obj.id in attempted_exam_ids:
+            # Already enrolled (started or submitted) -> skip entirely.
+            continue
+
         if exam_obj.status == "closed":
             display_status = "completed"
         elif exam_obj.start_datetime and exam_obj.start_datetime > now:
@@ -312,29 +377,49 @@ def exams(request):
             continue
 
         exam_obj.display_status = display_status
-        attempt = my_attempts.get(exam_obj.id)
-        exam_obj.my_attempt = attempt
-
-        if attempt and attempt.status == "submitted":
-            completed_list.append(exam_obj)
-        else:
-            available_list.append(exam_obj)
+        available_list.append(exam_obj)
 
     paginator = Paginator(available_list, 6)
     page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(request, "exams.html", {
         "exams": page_obj,
-        "completed_exams": completed_list,
         "search": search,
         "status_filter": status_filter,
     })
 
 
-@login_required
-def dashboard(request):
-    return render(request, "userpanel/dashboard.html")
 
+@login_required
+def completed_exams(request):
+    """
+    Lists every exam the logged-in user has submitted, most recent first,
+    each linking through to its full result/review page.
+    """
+    attempts = (
+        UserExamAttempt.objects.filter(user=request.user, status="submitted")
+        .select_related("exam", "exam__class_obj")
+        .order_by("-submitted_at")
+    )
+
+    search = request.GET.get("q", "").strip()
+    if search:
+        attempts = attempts.filter(
+            Q(exam__title__icontains=search) | Q(exam__subject__icontains=search)
+        )
+
+    result_filter = request.GET.get("result", "").strip()
+    if result_filter in ("pass", "fail"):
+        attempts = attempts.filter(result_status=result_filter)
+
+    paginator = Paginator(attempts, 6)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "completed_exams.html", {
+        "attempts": page_obj,
+        "search": search,
+        "result_filter": result_filter,
+    })
 
 @login_required
 def enroll_exam(request, exam_id):
@@ -518,6 +603,99 @@ def exam_result(request, attempt_id):
         "full_review": full_review,
     })
 
+
+
+def _grade_for(pct):
+    """Map an average percentage to a letter grade + badge style."""
+    if pct >= 90:
+        return "A", "badge-success"
+    if pct >= 75:
+        return "B", "badge-primary"
+    if pct >= 60:
+        return "C", "badge-warning"
+    if pct >= 50:
+        return "D", "badge-warning"
+    return "F", "badge-error"
+ 
+
+
+def leaderboard(request):
+    """
+    Public leaderboard, ranked by each student's average score % across
+    every exam they've submitted. Optional filters: search by name/email,
+    or narrow to a single exam's ranking instead of the overall one.
+    """
+    search = request.GET.get("q", "").strip()
+    exam_filter = request.GET.get("exam", "").strip()
+
+    attempts = UserExamAttempt.objects.filter(status="submitted", user__role="user")
+
+    exam_total_marks = None
+    if exam_filter:
+        attempts = attempts.filter(exam__title=exam_filter)
+        exam_total_marks = (
+            Exam.objects.filter(title=exam_filter)
+            .values_list("total_marks", flat=True)
+            .first()
+        )
+
+    stats = (
+        attempts.values("user")
+        .annotate(
+            avg_percentage=Avg("percentage"),
+            total_score=Sum("score"),
+            exams_taken=Count("id"),
+        )
+        .order_by("-avg_percentage", "-exams_taken")
+    )
+
+    users_by_id = {
+        u.id: u for u in User.objects.filter(id__in=[s["user"] for s in stats])
+    }
+
+    ranking = []
+    for position, s in enumerate(stats, start=1):
+        user = users_by_id.get(s["user"])
+        if not user:
+            continue
+
+        if search and search.lower() not in (user.name or "").lower() and search.lower() not in user.email.lower():
+            continue
+
+        pct = round(s["avg_percentage"] or 0, 1)
+        grade, badge_class = _grade_for(pct)
+
+        ranking.append({
+            "rank": position,
+            "user": user,
+            "avg_percentage": pct,
+            "total_score": s["total_score"],
+            "exams_taken": s["exams_taken"],
+            "grade": grade,
+            "badge_class": badge_class,
+        })
+
+    exam_titles = (
+        Exam.objects.filter(created_by__role="admin")
+        .exclude(status="draft")
+        .values_list("title", flat=True)
+        .distinct()
+        .order_by("title")
+    )
+
+    top3 = ranking[:3]
+
+    paginator = Paginator(ranking, 8)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "leaderboard.html", {
+        "ranking": page_obj,
+        "top3": top3,
+        "search": search,
+        "exam_filter": exam_filter,
+        "exam_titles": exam_titles,
+        "exam_total_marks": exam_total_marks,   # <-- new
+    })
 
 def contact(request):
     """

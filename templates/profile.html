@@ -1,0 +1,452 @@
+{% extends 'master.html' %}
+
+{% block title %}My Profile — Testify{% endblock %}
+{% block meta_description %}View and edit your Testify profile and exam performance summary.{% endblock %}
+
+{% block content %}
+<main>
+  <section class="hero" style="padding:var(--space-8) 0 var(--space-6); position:relative; overflow:hidden;">
+    <div class="hero-bg"></div>
+    <div class="container" style="position:relative; z-index:1;">
+      <div class="section-header" data-reveal style="margin-bottom:var(--space-6);">
+        <span class="eyebrow">Account</span>
+        <h1 class="hero-title" style="font-size:clamp(2rem,4vw,3rem); letter-spacing:-.02em;">My Profile</h1>
+        <p class="section-subtitle">Manage your details and see how you're performing.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm" style="padding-top:0;">
+    <div class="container">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}" data-reveal style="margin-bottom:var(--space-4);">
+            <span class="alert-icon">{% if message.tags == 'error' %}&#9888;{% else %}&#10003;{% endif %}</span>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="profile-grid">
+        <!-- Edit form -->
+        <div class="card profile-card" data-reveal>
+          <div class="card-header">
+            <h2 class="card-title">Edit details</h2>
+            <p class="card-subtitle">Update your personal information</p>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" class="profile-form">
+            {% csrf_token %}
+
+            <div class="profile-avatar-row">
+              <div class="avatar-wrap">
+                {% if request.user.profile_image %}
+                  <span class="account-avatar account-avatar-img account-avatar-lg">
+                    <img src="{{ request.user.profile_image.url }}" alt="{{ request.user.name|default:request.user.email }}">
+                  </span>
+                {% else %}
+                  <span class="account-avatar account-avatar-lg">{{ request.user.name|default:request.user.email|first|upper }}</span>
+                {% endif %}
+                <label for="profile_image" class="avatar-upload-btn" title="Change photo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </label>
+              </div>
+              <div class="avatar-info">
+                <label class="form-label" for="profile_image">Profile photo</label>
+                <p class="text-muted avatar-hint">Click the camera icon to upload</p>
+                <input type="file" id="profile_image" name="profile_image" accept="image/*" class="form-control file-input-hidden" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="name">Name</label>
+              <input type="text" id="name" name="name" class="form-control" value="{{ request.user.name|default:'' }}" placeholder="Your name" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="email">Email</label>
+              <input type="email" id="email" class="form-control form-control-disabled" value="{{ request.user.email }}" disabled />
+              <p class="text-muted field-hint">Email can't be changed here.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" class="form-control" value="{{ request.user.phone|default:'' }}" placeholder="10-digit phone number" maxlength="10" pattern="[0-9]{10}" />
+              <p class="text-muted field-hint">Must be a unique 10-digit number.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Save changes</button>
+          </form>
+        </div>
+
+        <!-- Performance summary -->
+        <div class="card profile-card" data-reveal>
+          <div class="card-header">
+            <h2 class="card-title">Performance</h2>
+            <p class="card-subtitle">Your exam summary</p>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat">
+              <div class="stat-value">{{ exams_taken }}</div>
+              <div class="stat-label">Exams taken</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <div class="stat-value">{{ avg_percentage }}%</div>
+              <div class="stat-label">Avg score</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              {% if grade %}
+                <div class="stat-value"><span class="badge {{ badge_class }}">{{ grade }}</span></div>
+              {% else %}
+                <div class="stat-value stat-empty">&mdash;</div>
+              {% endif %}
+              <div class="stat-label">Grade</div>
+            </div>
+          </div>
+
+          <div class="performance-bar">
+            <div class="perf-bar-label">
+              <span>Overall progress</span>
+              <span class="perf-bar-pct">{{ avg_percentage }}%</span>
+            </div>
+            <div class="perf-bar-track">
+              <div class="perf-bar-fill" style="width:{{ avg_percentage|default:0 }}%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent attempts -->
+      <div class="card attempts-card" data-reveal>
+        <div class="card-header">
+          <h2 class="card-title">Recent attempts</h2>
+          <p class="card-subtitle">Your latest exam submissions</p>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Exam</th><th>Score</th><th>Score %</th><th>Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for attempt in recent_attempts %}
+              <tr>
+                <td class="cell-main">{{ attempt.exam.title }}</td>
+                <td>{{ attempt.score }}</td>
+                <td>
+                  <span class="score-pill {% if attempt.percentage >= 75 %}score-pill-good{% elif attempt.percentage >= 50 %}score-pill-mid{% else %}score-pill-low{% endif %}">{{ attempt.percentage }}%</span>
+                </td>
+                <td class="cell-sub">{{ attempt.submitted_at|date:"M d, Y" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="empty-state">
+                <div class="empty-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <p>No exams taken yet.</p>
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<style>
+  /* ---- Layout ---- */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: var(--space-6);
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---- Cards ---- */
+  .profile-card {
+    padding: var(--space-6) !important;
+    transition: box-shadow .25s ease, transform .25s ease;
+  }
+  .profile-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,.08);
+    transform: translateY(-2px);
+  }
+
+  .card-header {
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border, rgba(0,0,0,.07));
+  }
+  .card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 0;
+  }
+  .card-subtitle {
+    font-size: .85rem;
+    color: var(--text-muted, #888);
+    margin: 4px 0 0;
+  }
+
+  /* ---- Avatar upload ---- */
+  .profile-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--border, rgba(0,0,0,.07));
+  }
+  .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .avatar-upload-btn {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--primary, #2548d6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 3px solid var(--card-bg, #fff);
+    transition: transform .2s ease, background .2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .avatar-upload-btn:hover {
+    transform: scale(1.12);
+    background: var(--primary-dark, #1a36a8);
+  }
+  .avatar-info {
+    flex: 1;
+  }
+  .avatar-hint {
+    font-size: .8rem;
+    margin: 2px 0 0;
+  }
+  .file-input-hidden {
+    position: absolute;
+    width: .1px;
+    height: .1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  /* ---- Form ---- */
+  .form-group { margin-bottom: var(--space-4); }
+  .form-label {
+    display: block;
+    font-weight: 600;
+    font-size: .85rem;
+    margin-bottom: 8px;
+    letter-spacing: .01em;
+  }
+  .form-control {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    font-size: .95rem;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    background: var(--input-bg, #fff);
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: var(--primary, #2548d6);
+    box-shadow: 0 0 0 3px rgba(37,72,214,.12);
+  }
+  .form-control::placeholder {
+    color: var(--text-muted, #aaa);
+  }
+  .form-control-disabled {
+    background: var(--bg-muted, #f5f5f5);
+    color: var(--text-muted, #888);
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+  .field-hint {
+    font-size: .8rem;
+    margin: 6px 0 0;
+  }
+  .btn-block {
+    width: 100%;
+    margin-top: var(--space-2);
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: transform .15s ease, box-shadow .2s ease;
+  }
+  .btn-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37,72,214,.3);
+  }
+  .btn-block:active {
+    transform: translateY(0);
+  }
+
+  /* ---- Stats ---- */
+  .stats-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .stat {
+    text-align: center;
+    flex: 1;
+  }
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+  }
+  .stat-empty {
+    color: var(--text-muted, #ccc);
+  }
+  .stat-label {
+    font-size: .8rem;
+    color: var(--text-muted, #888);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .stat-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border, rgba(0,0,0,.08));
+    flex-shrink: 0;
+  }
+
+  /* ---- Performance bar ---- */
+  .performance-bar {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border, rgba(0,0,0,.07));
+  }
+  .perf-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: .82rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-muted, #666);
+  }
+  .perf-bar-pct {
+    color: var(--primary, #2548d6);
+  }
+  .perf-bar-track {
+    height: 8px;
+    background: var(--bg-muted, #f0f0f0);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .perf-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary, #2548d6), var(--primary-light, #4f6dff));
+    border-radius: 100px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ---- Attempts table ---- */
+  .attempts-card {
+    padding: 0 !important;
+    overflow: hidden;
+    margin-top: var(--space-6);
+  }
+  .attempts-card .card-header {
+    padding: var(--space-5) var(--space-6) var(--space-4);
+    margin-bottom: 0;
+  }
+  .score-pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: .82rem;
+    font-weight: 600;
+  }
+  .score-pill-good {
+    background: rgba(34,197,94,.1);
+    color: #16a34a;
+  }
+  .score-pill-mid {
+    background: rgba(245,158,11,.1);
+    color: #d97706;
+  }
+  .score-pill-low {
+    background: rgba(239,68,68,.1);
+    color: #dc2626;
+  }
+
+  /* ---- Empty state ---- */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem !important;
+  }
+  .empty-icon {
+    color: var(--text-muted, #ccc);
+    margin-bottom: var(--space-3);
+  }
+  .empty-state p {
+    color: var(--text-muted, #888);
+    font-size: .9rem;
+    margin: 0;
+  }
+
+  /* ---- Alerts ---- */
+  .alert {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: .9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: alertSlide .3s ease;
+  }
+  .alert-icon {
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .alert-success {
+    background: rgba(37,72,214,.06);
+    color: #2548d6;
+    border: 1px solid rgba(37,72,214,.18);
+  }
+  .alert-error {
+    background: rgba(214,69,69,.06);
+    color: #d64545;
+    border: 1px solid rgba(214,69,69,.18);
+  }
+  @keyframes alertSlide {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 600px) {
+    .profile-card { padding: var(--space-5) !important; }
+    .stat-value { font-size: 1.4rem; }
+    .stat-divider { display: none; }
+    .stats-row { gap: var(--space-2); }
+    .profile-avatar-row { flex-direction: column; text-align: center; align-items: center; }
+    .avatar-info { text-align: center; }
+  }
+</style>
+{% endblock %}

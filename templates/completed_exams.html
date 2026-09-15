@@ -1,0 +1,384 @@
+{% extends 'master.html' %}
+
+{% block title %}Completed Exams — Testify{% endblock %}
+{% block meta_description %}Review every exam you've completed on Testify, with your score and pass/fail status.{% endblock %}
+
+{% block content %}
+<main>
+  <section class="hero" style="padding:var(--space-8) 0 var(--space-6); position:relative; overflow:hidden;">
+    <div class="hero-bg"></div>
+    <div class="container" style="position:relative; z-index:1;">
+      <div class="section-header" data-reveal style="margin-bottom:var(--space-6);">
+        <span class="eyebrow">Your Results</span>
+        <h1 class="hero-title" style="font-size:clamp(2rem,4vw,3rem); letter-spacing:-.02em;">Completed exams</h1>
+        <p class="section-subtitle">Every exam you've submitted, with your score and result.</p>
+      </div>
+
+      <form class="toolbar" method="get" action="{% url 'completed_exams' %}" data-reveal>
+        <div class="search">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" name="q" class="form-control" placeholder="Search by title or subject…" value="{{ search }}" />
+        </div>
+        <div class="filter">
+          <select class="form-control select" name="result" aria-label="Filter by result" onchange="this.form.submit()">
+            <option value="" {% if not result_filter %}selected{% endif %}>All results</option>
+            <option value="pass" {% if result_filter == 'pass' %}selected{% endif %}>Pass</option>
+            <option value="fail" {% if result_filter == 'fail' %}selected{% endif %}>Fail</option>
+          </select>
+        </div>
+        <button type="submit" style="display:none;" aria-hidden="true"></button>
+      </form>
+    </div>
+  </section>
+
+  <section class="section-sm" style="padding-top:0;">
+    <div class="container">
+      <div class="exam-grid" id="completed-exam-list" data-stagger>
+        {% for attempt in attempts %}
+        <div class="card exam-card card-hover" data-reveal>
+          <div class="exam-top">
+            <h3 class="exam-title">{{ attempt.exam.title }}</h3>
+            {% if attempt.result_status == 'pass' %}
+              <span class="badge badge-success badge-dot">Pass</span>
+            {% else %}
+              <span class="badge badge-error badge-dot">Fail</span>
+            {% endif %}
+          </div>
+          <div class="exam-meta">
+            <span class="meta">{{ attempt.exam.subject }}</span>
+            <span class="meta-dot"></span>
+            <span class="meta">{{ attempt.exam.class_obj.class_name|default:"General" }}</span>
+          </div>
+
+          <div class="exam-score-bar">
+            <div class="score-bar-info">
+              <span class="score-bar-value">{{ attempt.score }}/{{ attempt.exam.total_marks }}</span>
+              <span class="score-bar-pct {% if attempt.percentage >= 75 %}score-high{% elif attempt.percentage >= 50 %}score-mid{% else %}score-low{% endif %}">{{ attempt.percentage }}%</span>
+            </div>
+            <div class="score-bar-track">
+              <div class="score-bar-fill {% if attempt.percentage >= 75 %}fill-high{% elif attempt.percentage >= 50 %}fill-mid{% else %}fill-low{% endif %}" style="width:{{ attempt.percentage }}%;"></div>
+            </div>
+          </div>
+
+          <div class="exam-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">Pass mark</span>
+              <span class="meta-value">{{ attempt.exam.passing_marks }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Submitted</span>
+              <span class="meta-value">{{ attempt.submitted_at|date:"d M Y" }}</span>
+            </div>
+          </div>
+
+          <div class="exam-footer">
+            <a href="{% url 'exam_result' attempt.id %}" class="btn btn-secondary btn-sm btn-view-result">
+              View Result
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty-exams">
+          <div class="empty-icon-lg">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <h3>No exams completed yet</h3>
+          <p>When you finish an exam, your results will appear here.</p>
+          <a href="{% url 'exams' %}" class="btn btn-primary btn-sm">Browse available exams</a>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if attempts.has_other_pages %}
+      <div class="pagination">
+        <button class="page-btn" {% if not attempts.has_previous %}disabled{% endif %}
+          {% if attempts.has_previous %}onclick="window.location.href='?page={{ attempts.previous_page_number }}&q={{ search|urlencode }}&result={{ result_filter }}'"{% endif %}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        {% for num in attempts.paginator.page_range %}
+        <button class="page-btn {% if attempts.number == num %}active{% endif %}"
+          onclick="window.location.href='?page={{ num }}&q={{ search|urlencode }}&result={{ result_filter }}'">{{ num }}</button>
+        {% endfor %}
+        <button class="page-btn" {% if not attempts.has_next %}disabled{% endif %}
+          {% if attempts.has_next %}onclick="window.location.href='?page={{ attempts.next_page_number }}&q={{ search|urlencode }}&result={{ result_filter }}'"{% endif %}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</main>
+
+<style>
+  /* ---- Toolbar ---- */
+  .toolbar {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin-top: var(--space-5);
+  }
+  .search {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+  .search .icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #999);
+    pointer-events: none;
+  }
+  .search .form-control {
+    padding-left: 42px;
+  }
+  .filter {
+    flex-shrink: 0;
+  }
+  .toolbar .form-control {
+    padding: 12px 14px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    font-size: .95rem;
+    background: var(--input-bg, #fff);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .toolbar .form-control:focus {
+    outline: none;
+    border-color: var(--primary, #2548d6);
+    box-shadow: 0 0 0 3px rgba(37,72,214,.12);
+  }
+  .toolbar .select {
+    cursor: pointer;
+    padding-right: 32px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  @media (max-width: 600px) {
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .filter select { width: 100%; }
+  }
+
+  /* ---- Exam grid ---- */
+  .exam-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--space-5);
+  }
+
+  /* ---- Exam card ---- */
+  .exam-card {
+    padding: var(--space-5) !important;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+  }
+  .exam-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,.08);
+    transform: translateY(-3px);
+  }
+
+  .exam-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .exam-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .exam-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .meta {
+    font-size: .82rem;
+    color: var(--text-muted, #888);
+    font-weight: 500;
+  }
+  .meta-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--text-muted, #ccc);
+    flex-shrink: 0;
+  }
+
+  /* ---- Score bar ---- */
+  .exam-score-bar {
+    margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+    background: var(--bg-muted, #f8f8f8);
+    border-radius: 10px;
+  }
+  .score-bar-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .score-bar-value {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text, #333);
+  }
+  .score-bar-pct {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+  .score-high { color: #16a34a; }
+  .score-mid { color: #d97706; }
+  .score-low { color: #dc2626; }
+
+  .score-bar-track {
+    height: 6px;
+    background: rgba(0,0,0,.06);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width .8s cubic-bezier(.4,0,.2,1);
+  }
+  .fill-high { background: linear-gradient(90deg, #16a34a, #22c55e); }
+  .fill-mid { background: linear-gradient(90deg, #d97706, #f59e0b); }
+  .fill-low { background: linear-gradient(90deg, #dc2626, #ef4444); }
+
+  /* ---- Meta row ---- */
+  .exam-meta-row {
+    display: flex;
+    gap: var(--space-5);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border, rgba(0,0,0,.06));
+    margin-bottom: var(--space-4);
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .meta-label {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-muted, #999);
+    font-weight: 600;
+  }
+  .meta-value {
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--text, #333);
+  }
+
+  /* ---- Footer ---- */
+  .exam-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+  }
+  .btn-view-result {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap .2s ease, background .2s ease;
+  }
+  .btn-view-result:hover {
+    gap: 10px;
+  }
+  .btn-view-result svg {
+    transition: transform .2s ease;
+  }
+  .btn-view-result:hover svg {
+    transform: translateX(2px);
+  }
+
+  /* ---- Empty state ---- */
+  .empty-exams {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .empty-icon-lg {
+    color: var(--text-muted, #ccc);
+    margin-bottom: var(--space-2);
+  }
+  .empty-exams h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .empty-exams p {
+    color: var(--text-muted, #888);
+    font-size: .9rem;
+    margin: 0 0 var(--space-2);
+  }
+
+  /* ---- Pagination ---- */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--space-7);
+  flex-wrap: wrap;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border, rgba(0,0,0,.06));
+  }
+  .page-btn {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.1));
+    background: var(--card-bg, #fff);
+    color: var(--text, #333);
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s ease;
+    padding: 0 10px;
+  }
+  .page-btn:hover:not(:disabled):not(.active) {
+    border-color: var(--primary, #2548d6);
+    color: var(--primary, #2548d6);
+    background: rgba(37,72,214,.04);
+  }
+  .page-btn.active {
+    background: var(--primary, #2548d6);
+    color: #fff;
+    border-color: var(--primary, #2548d6);
+    box-shadow: 0 2px 8px rgba(37,72,214,.25);
+  }
+  .page-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 600px) {
+    .exam-grid { grid-template-columns: 1fr; }
+    .exam-card { padding: var(--space-4) !important; }
+  }
+</style>
+{% endblock %}
