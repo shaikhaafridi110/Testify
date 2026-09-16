@@ -1,0 +1,118 @@
+{% extends 'teacher/master.html' %}
+
+{% block title %}
+Edit Class — Testify Teacher
+{% endblock %}
+
+{% block page_title %}Edit Class{% endblock %}
+{% block page_subtitle %}Update {{ class_obj.class_name }}'s details.{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="{% url 'teacher_dashboard' %}">Teacher</a><span class="sep">/</span>
+    href="{% url 'my_classes' %}">Classes</a><span class="sep">/</span><span class="current">Edit</span>
+</div>
+
+<div class="card card-pad-lg" style="max-width:640px;" data-reveal>
+  <form method="post" action="{% url 'my_class_edit' class_obj.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label" for="class_name">Class Name<span class="req">*</span></label>
+      <input type="text" id="class_name" name="class_name" class="form-control"
+        value="{{ class_obj.class_name }}" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="subject">Subject<span class="req">*</span></label>
+      <input type="text" id="subject" name="subject" class="form-control" value="{{ class_obj.subject }}"
+        required>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="course">Course</label>
+        <input type="text" id="course" name="course" class="form-control" value="{{ class_obj.course }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="semester">Semester</label>
+        <input type="text" id="semester" name="semester" class="form-control" value="{{ class_obj.semester }}">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="academic_year">Academic Year</label>
+        <input type="text" id="academic_year" name="academic_year" class="form-control"
+          value="{{ class_obj.academic_year }}" placeholder="e.g. 2025-2026">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-control select">
+          <option value="active" {% if class_obj.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if class_obj.status == 'inactive' %}selected{% endif %}>Inactive</option>
+          <option value="completed" {% if class_obj.status == 'completed' %}selected{% endif %}>Completed</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="description">Description</label>
+      <textarea id="description" name="description" class="form-control" rows="4">{{ class_obj.description|default:'' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="student_info">Student Info File</label>
+      {% if class_obj.student_info %}
+      <p style="margin-bottom:8px;">
+        <a href="{{ class_obj.student_info.url }}" download>Download current CSV</a>
+      </p>
+      {% endif %}
+      <input type="file" id="student_info" name="student_info" class="form-control">
+    </div>
+
+    <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
+      <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'my_classes' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+      <button type="button" class="btn btn-danger"
+        onclick="confirmAction('Delete class {{ class_obj.class_name|escapejs }}? This cannot be undone.',()=>deleteClass('{{ class_obj.id }}'))">
+        Delete Class
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  function deleteClass(classId) {
+    fetch("{% url 'my_class_delete' class_obj.id %}", {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Class deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.href = "{% url 'my_classes' %}", 800);
+        } else {
+          toast('Could not delete class.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete class.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

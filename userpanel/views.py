@@ -51,6 +51,7 @@ def _redirect_for_role(request, user):
         if not info or info.approval_status != "approved":
             messages.error(request, "Your teacher account is still pending admin approval.")
             return redirect("login")
+        return redirect("teacher_dashboard")
     return redirect("index")
 
 

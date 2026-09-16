@@ -28,7 +28,7 @@ class MyAccountAdapter(DefaultAccountAdapter):
                     "You'll be notified by email once it's reviewed."
                 )
                 return reverse("login")
-            return reverse("index")
+            return reverse("teacher_dashboard")
 
         return reverse("index")
 

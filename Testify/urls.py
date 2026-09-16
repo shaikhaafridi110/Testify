@@ -6,6 +6,7 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', include('adminpanel.urls')),
     path("accounts/", include("allauth.urls")),
+    path('teacher/', include('teacherpanel.urls')),
     path("", include("userpanel.urls")),   # -> "login" at "/", "index" at "/index/"
 ]
 

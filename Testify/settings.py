@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'adminpanel',
     'userpanel',
+    'teacherpanel',
 ]
 
 
@@ -75,6 +76,7 @@ MIDDLEWARE = [
 
     'allauth.account.middleware.AccountMiddleware',
     'adminpanel.middleware.AdminAccessMiddleware',
+    'teacherpanel.middleware.TeacherAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'Testify.urls'
