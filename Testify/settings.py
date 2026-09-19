@@ -30,7 +30,15 @@ SECRET_KEY = 'django-insecure-742x=d^)iyvxfo^m(l#xagc5183v@h50fpo=v9v@(@j=jwk=6z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    ".trycloudflare.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.trycloudflare.com",
+]
 
 
 # Application definition
@@ -53,6 +61,7 @@ INSTALLED_APPS = [
     'adminpanel',
     'userpanel',
     'teacherpanel',
+     'studentpanel',
 ]
 
 
@@ -77,6 +86,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'adminpanel.middleware.AdminAccessMiddleware',
     'teacherpanel.middleware.TeacherAccessMiddleware',
+    "studentpanel.middleware.StudentAuthMiddleware",  
 ]
 
 ROOT_URLCONF = 'Testify.urls'

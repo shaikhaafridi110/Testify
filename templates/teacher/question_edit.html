@@ -1,0 +1,122 @@
+{% extends 'teacher/master.html' %}
+
+{% block title %}
+Edit Question — {{ exam.title }} — Testify Teacher
+{% endblock %}
+
+{% block page_title %}Edit Question{% endblock %}
+{% block page_subtitle %}Update this question in {{ exam.title }}.{% endblock %}
+
+{% block style %}
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.option-row .option-key {
+  width: 28px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.option-row input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+{% endblock %}
+
+{% block content %}
+<div class="crumbs">
+  <a href="{% url 'teacher_dashboard' %}">Teacher</a><span class="sep">/</span>
+  <a href="{% url 'my_exams' %}">Exams</a><span class="sep">/</span>
+  <a href="{% url 'my_exam_questions' exam.id %}">{{ exam.title }} — Questions</a><span class="sep">/</span>
+  <span class="current">Edit Question</span>
+</div>
+
+<div class="card card-pad-lg" style="max-width:720px;" data-reveal>
+  <form method="post" action="{% url 'my_question_edit' exam.id question.id %}">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label" for="question_text">Question<span class="req">*</span></label>
+      <textarea id="question_text" name="question_text" class="form-control" rows="3" required>{{ question.question_text }}</textarea>
+    </div>
+
+    <div class="form-group" style="max-width:160px;">
+      <label class="form-label" for="marks">Marks<span class="req">*</span></label>
+      <input type="number" id="marks" name="marks" class="form-control" min="1" value="{{ question.marks }}" required>
+      <p style="font-size:0.78rem;color:var(--text-muted,#6b7280);margin-top:4px;">
+        {{ marks_remaining }} mark{{ marks_remaining|pluralize }} available (excluding this question's current marks).
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Options<span class="req">*</span></label>
+      <p style="font-size:0.8rem; color:var(--text-muted,#6b7280); margin:-4px 0 12px;">
+        Select the radio button next to the correct option.
+      </p>
+      {% for opt in options %}
+      <div class="option-row">
+        <span class="option-key">{{ opt.option_key }}</span>
+        <input type="radio" name="correct_option" value="{{ opt.id }}" {% if opt.is_correct %}checked{% endif %} required>
+        <input type="hidden" name="option_id[]" value="{{ opt.id }}">
+        <input type="text" name="option_text[]" class="form-control" value="{{ opt.option_text }}">
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="flex gap-3" style="margin-top: var(--space-5); justify-content: space-between;">
+      <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'my_exam_questions' exam.id %}" class="btn btn-secondary">Cancel</a>
+      </div>
+      <button type="button" class="btn btn-danger"
+        onclick="confirmAction('Delete this question? This cannot be undone.',()=>deleteQuestion())">
+        Delete Question
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  function deleteQuestion() {
+    fetch("{% url 'my_question_delete' exam.id question.id %}", {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Question deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.href = "{% url 'my_exam_questions' exam.id %}", 800);
+        } else {
+          toast('Could not delete question.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete question.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

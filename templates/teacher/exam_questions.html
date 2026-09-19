@@ -1,0 +1,156 @@
+{% extends 'teacher/master.html' %}
+
+{% block title %}
+{{ exam.title }} — Questions — Testify Teacher
+{% endblock %}
+
+{% block page_title %}{{ exam.title }} — Questions{% endblock %}
+{% block page_subtitle %}{{ exam.subject }} &middot; {{ total_questions }} question{{ total_questions|pluralize }} &middot; {{ total_marks_added }} / {{ exam.total_marks }} marks added{% endblock %}
+{% block header_actions %}
+<a href="{% url 'my_question_add' exam.id %}" class="btn btn-primary btn-sm">+ Add Question</a>
+{% endblock %}
+{% block style %}
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.kpi-card.accent .kpi-icon {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.q-card .row-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.q-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.q-option.correct {
+  border: 1px solid var(--primary);
+  background: var(--primary-soft);
+}
+{% endblock %}
+
+{% block content %}
+<div class="crumbs">
+  <a href="{% url 'teacher_dashboard' %}">Teacher</a><span class="sep">/</span>
+  <a href="{% url 'my_exams' %}">Exams</a><span class="sep">/</span>
+  <span class="current">{{ exam.title }} — Questions</span>
+</div>
+
+<div class="dash-grid" data-stagger style="margin-bottom:var(--space-5);">
+  <div class="card kpi-card" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ total_questions }}">0</div>
+    <div class="kpi-lbl">Total Questions</div>
+  </div>
+
+  <div class="card kpi-card accent" data-reveal>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+    </div>
+    <div class="kpi-num" data-count="{{ total_marks_added }}">0</div>
+    <div class="kpi-lbl">Marks Added (of {{ exam.total_marks }})</div>
+  </div>
+</div>
+
+<div class="flex-col gap-4" id="q-list">
+  {% for q in questions %}
+  <div class="card q-card" data-reveal>
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <span class="badge badge-primary">Q{{ forloop.counter }}</span>
+        {% if q.question_type %}<span class="badge">{{ q.question_type }}</span>{% endif %}
+        <span class="badge badge-accent">{{ q.marks }} mark{{ q.marks|pluralize }}</span>
+      </div>
+      <div class="row-actions">
+        <a class="icon-btn" aria-label="Edit" href="{% url 'my_question_edit' exam.id q.id %}"><svg width="16" height="16"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg></a>
+        <button class="icon-btn danger" aria-label="Delete"
+          onclick="confirmAction('Delete this question? This cannot be undone.',()=>deleteQuestion('{% url 'my_question_delete' exam.id q.id %}'))"><svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg></button>
+      </div>
+    </div>
+    <p class="fw-600 mb-4">{{ q.question_text }}</p>
+    <div class="grid-2">
+      {% for opt in q.options.all %}
+      <div class="q-option{% if opt.is_correct %} correct{% endif %}">
+        <span class="badge{% if opt.is_correct %} badge-primary{% endif %}">{{ opt.option_key }}</span>
+        {{ opt.option_text }}
+        {% if opt.is_correct %}<span class="badge badge-success" style="margin-left:auto;">Correct</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="card" style="text-align:center; padding:2rem;" data-reveal>
+    No questions yet. Use <strong>+ Add Question</strong> above to add one manually, or import a batch from CSV or PDF.
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  function deleteQuestion(deleteUrl) {
+    fetch(deleteUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (res.ok) {
+          toast('Question deleted.', { title: 'Deleted', type: 'success' });
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          toast('Could not delete question.', { title: 'Error', type: 'error' });
+        }
+      })
+      .catch(() => toast('Could not delete question.', { title: 'Error', type: 'error' }));
+  }
+</script>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

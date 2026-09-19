@@ -6,6 +6,9 @@ Exams — Testify Admin
 
 {% block page_title %}Exams{% endblock %}
 {% block page_subtitle %}Manage exams created directly by admin (not tied to any teacher's class).{% endblock %}
+{% block header_actions %}
+<a href="{% url 'admin_exam_add' %}" class="btn btn-primary">+ Add Exam</a>
+{% endblock %}
 
 {% block style %}
 .kpi-icon {

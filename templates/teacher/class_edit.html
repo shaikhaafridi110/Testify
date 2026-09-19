@@ -9,7 +9,7 @@ Edit Class — Testify Teacher
 
 {% block content %}
 <div class="crumbs"><a href="{% url 'teacher_dashboard' %}">Teacher</a><span class="sep">/</span>
-    href="{% url 'my_classes' %}">Classes</a><span class="sep">/</span><span class="current">Edit</span>
+  <a href="{% url 'my_classes' %}">Classes</a><span class="sep">/</span><span class="current">Edit</span>
 </div>
 
 <div class="card card-pad-lg" style="max-width:640px;" data-reveal>
@@ -65,10 +65,19 @@ Edit Class — Testify Teacher
     <div class="form-group">
       <label class="form-label" for="student_info">Student Info File</label>
       {% if class_obj.student_info %}
-      <p style="margin-bottom:8px;">
-        <a href="{{ class_obj.student_info.url }}" download>Download current CSV</a>
+      <div class="flex gap-3" style="margin-bottom:8px;">
+        <a href="{% url 'my_class_student_csv_edit' class_obj.id %}">Edit Student List</a>
+        <a href="{% url 'my_class_student_csv_open' class_obj.id %}" target="_blank">Open Raw CSV</a>
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-muted,#6b7280);margin:0 0 8px;">
+        "Edit Student List" opens an in-page editable table that autosaves as you type.
+        "Open Raw CSV" opens the file directly in a new tab instead of forcing a download
+        (your browser decides how to display it).
       </p>
       {% endif %}
+      <p style="font-size:0.78rem;color:var(--text-muted,#6b7280);margin:0 0 4px;">
+        Upload a new file below to replace the current one entirely.
+      </p>
       <input type="file" id="student_info" name="student_info" class="form-control">
     </div>
 

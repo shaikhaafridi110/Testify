@@ -1,0 +1,428 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exams — Testify Student</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232143d6'/%3E%3Ctext x='32' y='46' font-family='Arial,Helvetica,sans-serif' font-size='40' font-weight='800' text-anchor='middle' fill='white'%3ET%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'assets/css/style.css' %}" />
+  <link rel="stylesheet" href="{% static 'assets/css/responsive.css' %}" />
+
+  <style>
+    /* ---------- Exam cards (scoped with .ec- so nothing clashes with style.css) ---------- */
+    :root { --ec-card-w: 340px; }   /* <- change this one number to resize every card */
+
+    .ec-ic { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .ec-ic--bold { stroke-width: 2.2; }
+
+    .ec-section-title { font-size: 1.25rem; font-weight: 800; margin: 0 0 14px; color: #12121a; }
+
+    /* fixed-width columns, left aligned: a single card no longer stretches */
+    .ec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, var(--ec-card-w));
+      justify-content: start;
+      gap: 18px;
+      margin-bottom: 32px;
+      align-items: stretch;
+    }
+    /* ---------- empty state ---------- */
+    .ec-empty {
+      grid-column: 1 / -1;
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+      padding: 44px 24px; margin-bottom: 8px;
+      background: #fff; border: 1.5px dashed #d5d8e0; border-radius: 20px;
+      color: #7b7f93; font-size: .92rem; line-height: 1.5;
+    }
+    .ec-empty strong { color: #12121a; font-size: 1.05rem; font-weight: 800; }
+    .ec-empty-icon {
+      display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 10px;
+      border-radius: 50%; background: #f1f2f6; color: #6b7086;
+    }
+    .ec-empty--available .ec-empty-icon { background: #e6f7ec; color: #12793a; }
+    .ec-empty--upcoming  .ec-empty-icon { background: #fff4dc; color: #a15c00; }
+    .ec-empty--closed    .ec-empty-icon { background: #fdeaea; color: #b42318; }
+    .ec-empty--completed .ec-empty-icon { background: #eaf0ff; color: #1f3fb8; }
+
+    /* ---------- section tabs: full-width bar, same width as the page ---------- */
+    .ec-tabs {
+      display: flex; gap: 6px; width: 100%;
+      padding: 6px; margin-bottom: 24px;
+      background: #fff; border: 1px solid #e3e5ea; border-radius: 14px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    }
+    .ec-tab {
+      flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      white-space: nowrap; padding: 11px 16px; border: 0; border-radius: 10px; background: transparent;
+      font: inherit; font-size: .98rem; font-weight: 700; color: #5a5f75; cursor: pointer;
+      transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+    }
+    .ec-tab:hover { background: #f1f2f6; color: #12121a; }
+    .ec-tab:focus-visible { outline: 3px solid #a9b8ff; outline-offset: 1px; }
+    .ec-tab[aria-selected="true"] { background: #2143d6; color: #fff; box-shadow: 0 4px 10px rgba(33, 67, 214, .28); }
+
+    /* count bubbles are colour-coded like the card badges */
+    .ec-tab-count {
+      min-width: 24px; padding: 2px 8px; border-radius: 999px; text-align: center;
+      font-size: .78rem; font-weight: 800; background: #eceef2; color: #4b5068;
+    }
+    .ec-tab[data-tab="available"] .ec-tab-count { background: #e6f7ec; color: #12793a; }
+    .ec-tab[data-tab="upcoming"]  .ec-tab-count { background: #fff4dc; color: #a15c00; }
+    .ec-tab[data-tab="closed"]    .ec-tab-count { background: #fdeaea; color: #b42318; }
+    .ec-tab[data-tab="completed"] .ec-tab-count { background: #eaf0ff; color: #1f3fb8; }
+    .ec-tab[aria-selected="true"] .ec-tab-count { background: rgba(255, 255, 255, .25); color: #fff; }
+
+    .ec-panel[hidden] { display: none; }
+
+    /* phones: 2 x 2 grid so all four stay visible without scrolling */
+    @media (max-width: 560px) {
+      .ec-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+      .ec-tab { padding: 10px 8px; font-size: .92rem; }
+    }
+
+    /* ---------- flash messages ---------- */
+    .ec-messages { display: grid; gap: 10px; margin-bottom: 24px; }
+    .ec-alert { padding: 11px 14px; border-radius: 12px; border: 1px solid; font-size: .92rem; font-weight: 500; line-height: 1.4; }
+    .ec-alert--success { background: #e6f7ec; border-color: #b7e4c7; color: #12793a; }
+    .ec-alert--error   { background: #fdeaea; border-color: #f5c2c0; color: #b42318; }
+    .ec-alert--warning { background: #fff4dc; border-color: #f3d9a0; color: #8a5100; }
+    .ec-alert--info    { background: #eaf0ff; border-color: #c7d4fb; color: #1f3fb8; }
+
+    /* ---------- card (compact) ---------- */
+    .ec-card {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid #e3e5ea;
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+      transition: box-shadow .2s ease, transform .2s ease;
+    }
+    .ec-card:hover { box-shadow: 0 10px 24px rgba(16, 24, 40, .08); transform: translateY(-2px); }
+
+    .ec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .ec-title { margin: 0; font-size: 1.1rem; font-weight: 800; line-height: 1.3; color: #12121a; overflow-wrap: anywhere; }
+    .ec-badge {
+      display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+      padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap;
+    }
+    .ec-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .ec-badge--available { background: #e6f7ec; color: #12793a; }
+    .ec-badge--upcoming  { background: #fff4dc; color: #a15c00; }
+    .ec-badge--closed    { background: #fdeaea; color: #b42318; }
+    .ec-badge--completed { background: #eaf0ff; color: #1f3fb8; }
+
+    .ec-meta {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
+      color: #6b7086; font-size: .9rem; font-weight: 500; margin-bottom: 12px;
+    }
+    .ec-meta-item { display: inline-flex; align-items: center; gap: 6px; }
+    .ec-dot { width: 3px; height: 3px; border-radius: 50%; background: #6b7086; flex-shrink: 0; }
+
+    /* stats strip — flex so labels can never overlap each other */
+    .ec-stats {
+      display: flex; justify-content: space-between; gap: 6px;
+      background: #f6f6f7; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; text-align: center;
+    }
+    .ec-stat-value { display: block; font-size: 1.1rem; font-weight: 800; color: #12121a; line-height: 1.2; }
+    .ec-stat-label {
+      display: block; margin-top: 2px; font-size: .62rem; font-weight: 600;
+      letter-spacing: .03em; text-transform: uppercase; color: #7b7f93;
+    }
+
+    .ec-by {
+      display: flex; align-items: center; gap: 8px; color: #7b7f93;
+      font-size: .85rem; font-weight: 500; padding-bottom: 12px; border-bottom: 1px solid #e9eaee;
+    }
+
+    .ec-foot {
+      margin-top: auto; padding-top: 12px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .ec-note { display: inline-flex; align-items: center; gap: 6px; color: #7b7f93; font-size: .85rem; font-weight: 500; white-space: nowrap; }
+    .ec-note--stack { align-items: flex-start; }
+    .ec-note--stack .ec-note-text { display: flex; flex-direction: column; line-height: 1.25; }
+    .ec-note--stack strong { color: #4b5068; font-weight: 700; font-size: .85rem; }
+    .ec-note--stack small { font-size: .75rem; font-weight: 500; }
+    .ec-btn {
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+      padding: 8px 16px; border-radius: 10px; border: 0; font: inherit; font-size: .9rem; font-weight: 700;
+      text-decoration: none; cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .ec-btn--primary { background: #2143d6; color: #fff; box-shadow: 0 4px 10px rgba(33, 67, 214, .28); }
+    .ec-btn--primary:hover { background: #1a37b5; transform: translateY(-1px); }
+    .ec-btn--primary:focus-visible { outline: 3px solid #a9b8ff; outline-offset: 2px; }
+    .ec-btn--done { background: #e6f7ec; color: #12793a; box-shadow: none; cursor: default; }
+    .ec-btn--missed { background: #fff4dc; color: #a15c00; box-shadow: none; cursor: default; }
+    .ec-btn--disabled { background: #eceef2; color: #8a8fa3; box-shadow: none; cursor: not-allowed; }
+
+    /* phones: one full-width card per row */
+    @media (max-width: 400px) {
+      .ec-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ec-card, .ec-btn { transition: none; }
+      .ec-card:hover, .ec-btn--primary:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- icon sprite: defined once, reused with <use> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="ic-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
+    <symbol id="ic-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5v.01"/></symbol>
+    <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="ic-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand"><span class="brand-mark">T</span><span>Testify</span></div>
+      <div class="header-actions">
+        <span class="text-muted text-sm">{{ student_name }}</span>
+        <a href="{% url 'studentpanel:logout' class_id=class_obj.id %}" class="btn btn-secondary btn-sm">Log out</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-6);">
+
+    {% if messages %}
+    <div class="ec-messages">
+      {% for message in messages %}
+      <div class="ec-alert ec-alert--{{ message.tags }}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ============ SECTION TABS ============ -->
+    <div class="ec-tabs" role="tablist" aria-label="Exam sections">
+      <button type="button" class="ec-tab" role="tab" id="t-available" data-tab="available" aria-selected="true" aria-controls="tab-available">Available <span class="ec-tab-count">{{ available|length }}</span></button>
+      <button type="button" class="ec-tab" role="tab" id="t-upcoming" data-tab="upcoming" aria-selected="false" aria-controls="tab-upcoming">Upcoming <span class="ec-tab-count">{{ upcoming|length }}</span></button>
+      <button type="button" class="ec-tab" role="tab" id="t-closed" data-tab="closed" aria-selected="false" aria-controls="tab-closed">Closed <span class="ec-tab-count">{{ closed|length }}</span></button>
+      <button type="button" class="ec-tab" role="tab" id="t-completed" data-tab="completed" aria-selected="false" aria-controls="tab-completed">Completed <span class="ec-tab-count">{{ completed|length }}</span></button>
+    </div>
+
+    <!-- ============ AVAILABLE ============ -->
+    <section class="ec-panel" id="tab-available" role="tabpanel" aria-labelledby="t-available">
+    <div class="ec-grid">
+      {% for exam in available %}
+      <article class="ec-card">
+        <div class="ec-head">
+          <h3 class="ec-title">{{ exam.title }}</h3>
+          <span class="ec-badge ec-badge--available">Available</span>
+        </div>
+        <div class="ec-meta">
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-book"/></svg>{{ class_obj.class_name }}</span>
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-user"/></svg>{{ exam.subject }}</span>
+        </div>
+        <div class="ec-stats">
+          <div><span class="ec-stat-value">{{ exam.question_count }}</span><span class="ec-stat-label">Questions</span></div>
+          <div><span class="ec-stat-value">{{ exam.duration_minutes }}m</span><span class="ec-stat-label">Duration</span></div>
+          <div><span class="ec-stat-value">{{ exam.total_marks }}</span><span class="ec-stat-label">Marks</span></div>
+          <div><span class="ec-stat-value">{{ exam.passing_marks }}</span><span class="ec-stat-label">Pass</span></div>
+        </div>
+        <div class="ec-by">
+          <span>By {{ exam.creator_name }}</span>
+          <span class="ec-dot"></span>
+          <span>{{ exam.created_at|date:"d M Y" }}</span>
+        </div>
+        <div class="ec-foot">
+          {% if exam.closes_display %}
+          <span class="ec-note ec-note--stack">
+            <svg class="ec-ic" width="18" height="18"><use href="#ic-clock"/></svg>
+            <span class="ec-note-text"><strong>Closes</strong><small>{{ exam.closes_display }}</small></span>
+          </span>
+          {% else %}
+          <span class="ec-note"><svg class="ec-ic" width="18" height="18"><use href="#ic-info"/></svg>Open anytime</span>
+          {% endif %}
+          <a href="{% url 'studentpanel:take_exam' class_id=class_obj.id exam_id=exam.id %}" class="ec-btn ec-btn--primary">
+            Start Exam <svg class="ec-ic ec-ic--bold" width="18" height="18"><use href="#ic-arrow"/></svg>
+          </a>
+        </div>
+      </article>
+      {% empty %}
+      <div class="ec-empty ec-empty--available">
+        <span class="ec-empty-icon"><svg class="ec-ic" width="26" height="26"><use href="#ic-book"/></svg></span>
+        <strong>No exams available right now</strong>
+        <span>When your teacher publishes an exam, it will show up here.</span>
+      </div>
+      {% endfor %}
+    </div>
+    </section>
+
+    <!-- ============ UPCOMING ============ -->
+    <section class="ec-panel" id="tab-upcoming" role="tabpanel" aria-labelledby="t-upcoming" hidden>
+    <div class="ec-grid">
+      {% for exam in upcoming %}
+      <article class="ec-card">
+        <div class="ec-head">
+          <h3 class="ec-title">{{ exam.title }}</h3>
+          <span class="ec-badge ec-badge--upcoming">Upcoming</span>
+        </div>
+        <div class="ec-meta">
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-book"/></svg>{{ class_obj.class_name }}</span>
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-user"/></svg>{{ exam.subject }}</span>
+        </div>
+        <div class="ec-stats">
+          <div><span class="ec-stat-value">{{ exam.question_count }}</span><span class="ec-stat-label">Questions</span></div>
+          <div><span class="ec-stat-value">{{ exam.duration_minutes }}m</span><span class="ec-stat-label">Duration</span></div>
+          <div><span class="ec-stat-value">{{ exam.total_marks }}</span><span class="ec-stat-label">Marks</span></div>
+          <div><span class="ec-stat-value">{{ exam.passing_marks }}</span><span class="ec-stat-label">Pass</span></div>
+        </div>
+        <div class="ec-by">
+          <span>By {{ exam.creator_name }}</span>
+          <span class="ec-dot"></span>
+          <span>{{ exam.created_at|date:"d M Y" }}</span>
+        </div>
+        <div class="ec-foot">
+          <span class="ec-note"><svg class="ec-ic" width="18" height="18"><use href="#ic-info"/></svg>Not open yet</span>
+          <button class="ec-btn ec-btn--disabled" disabled>Unavailable</button>
+        </div>
+      </article>
+      {% empty %}
+      <div class="ec-empty ec-empty--upcoming">
+        <span class="ec-empty-icon"><svg class="ec-ic" width="26" height="26"><use href="#ic-clock"/></svg></span>
+        <strong>Nothing upcoming</strong>
+        <span>Exams that aren't open yet will be listed here.</span>
+      </div>
+      {% endfor %}
+    </div>
+    </section>
+
+    <!-- ============ CLOSED (not submitted) ============ -->
+    <section class="ec-panel" id="tab-closed" role="tabpanel" aria-labelledby="t-closed" hidden>
+    <div class="ec-grid">
+      {% for exam in closed %}
+      <article class="ec-card">
+        <div class="ec-head">
+          <h3 class="ec-title">{{ exam.title }}</h3>
+          <span class="ec-badge ec-badge--closed">Closed</span>
+        </div>
+        <div class="ec-meta">
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-book"/></svg>{{ class_obj.class_name }}</span>
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-user"/></svg>{{ exam.subject }}</span>
+        </div>
+        <div class="ec-stats">
+          <div><span class="ec-stat-value">{{ exam.question_count }}</span><span class="ec-stat-label">Questions</span></div>
+          <div><span class="ec-stat-value">{{ exam.duration_minutes }}m</span><span class="ec-stat-label">Duration</span></div>
+          <div><span class="ec-stat-value">{{ exam.total_marks }}</span><span class="ec-stat-label">Marks</span></div>
+          <div><span class="ec-stat-value">{{ exam.passing_marks }}</span><span class="ec-stat-label">Pass</span></div>
+        </div>
+        <div class="ec-by">
+          <span>By {{ exam.creator_name }}</span>
+          <span class="ec-dot"></span>
+          <span>{{ exam.created_at|date:"d M Y" }}</span>
+        </div>
+        <div class="ec-foot">
+          <span class="ec-note ec-note--stack">
+            <svg class="ec-ic" width="18" height="18"><use href="#ic-clock"/></svg>
+            <span class="ec-note-text"><strong>Closed</strong><small>{% if exam.closes_display %}{{ exam.closes_display }}{% else %}No longer open{% endif %}</small></span>
+          </span>
+          {% if exam.was_enrolled %}
+          <span class="ec-btn ec-btn--missed">Not submitted</span>
+          {% else %}
+          <span class="ec-btn ec-btn--disabled">Not attempted</span>
+          {% endif %}
+        </div>
+      </article>
+      {% empty %}
+      <div class="ec-empty ec-empty--closed">
+        <span class="ec-empty-icon"><svg class="ec-ic" width="26" height="26"><use href="#ic-info"/></svg></span>
+        <strong>No closed exams</strong>
+        <span>Exams that ended before you submitted them will appear here.</span>
+      </div>
+      {% endfor %}
+    </div>
+    </section>
+
+    <!-- ============ COMPLETED ============ -->
+    <section class="ec-panel" id="tab-completed" role="tabpanel" aria-labelledby="t-completed" hidden>
+    <div class="ec-grid">
+      {% for item in completed %}
+      <article class="ec-card">
+        <div class="ec-head">
+          <h3 class="ec-title">{{ item.exam.title }}</h3>
+          <span class="ec-badge ec-badge--completed">Completed</span>
+        </div>
+        <div class="ec-meta">
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-book"/></svg>{{ class_obj.class_name }}</span>
+          <span class="ec-meta-item"><svg class="ec-ic" width="20" height="20"><use href="#ic-user"/></svg>{{ item.exam.subject }}</span>
+        </div>
+        <div class="ec-stats">
+          <div><span class="ec-stat-value">{{ item.exam.question_count }}</span><span class="ec-stat-label">Questions</span></div>
+          <div><span class="ec-stat-value">{{ item.exam.duration_minutes }}m</span><span class="ec-stat-label">Duration</span></div>
+          <div><span class="ec-stat-value">{{ item.exam.total_marks }}</span><span class="ec-stat-label">Marks</span></div>
+          <div><span class="ec-stat-value">{{ item.exam.passing_marks }}</span><span class="ec-stat-label">Pass</span></div>
+        </div>
+        <div class="ec-by">
+          <span>By {{ item.exam.creator_name }}</span>
+          <span class="ec-dot"></span>
+          <span>{{ item.exam.created_at|date:"d M Y" }}</span>
+        </div>
+        <div class="ec-foot">
+          <span class="ec-note ec-note--stack">
+            <svg class="ec-ic" width="18" height="18"><use href="#ic-clock"/></svg>
+            <span class="ec-note-text"><strong>Submitted</strong><small>{{ item.submitted_display }}</small></span>
+          </span>
+          <span class="ec-btn ec-btn--done">
+            <svg class="ec-ic ec-ic--bold" width="18" height="18"><use href="#ic-check"/></svg> Completed
+          </span>
+        </div>
+      </article>
+      {% empty %}
+      <div class="ec-empty ec-empty--completed">
+        <span class="ec-empty-icon"><svg class="ec-ic" width="26" height="26"><use href="#ic-check"/></svg></span>
+        <strong>No completed exams yet</strong>
+        <span>Exams you submit will appear here.</span>
+      </div>
+      {% endfor %}
+    </div>
+    </section>
+  </main>
+
+  <script src="{% static 'assets/js/main.js' %}"></script>
+  <script>
+    /* Section tabs: click (or ←/→) to switch; the choice is kept in the URL hash. */
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll(".ec-tab"));
+      var panels = Array.prototype.slice.call(document.querySelectorAll(".ec-panel"));
+
+      function show(name, updateHash) {
+        tabs.forEach(function (t) {
+          var on = t.getAttribute("data-tab") === name;
+          t.setAttribute("aria-selected", on ? "true" : "false");
+          t.tabIndex = on ? 0 : -1;
+        });
+        panels.forEach(function (p) { p.hidden = p.id !== "tab-" + name; });
+        if (updateHash && window.history && history.replaceState) {
+          history.replaceState(null, "", "#" + name);
+        }
+      }
+
+      tabs.forEach(function (t, i) {
+        t.addEventListener("click", function () { show(t.getAttribute("data-tab"), true); });
+        t.addEventListener("keydown", function (e) {
+          var next = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : null;
+          if (next === null) return;
+          next = (next + tabs.length) % tabs.length;
+          tabs[next].focus();
+          show(tabs[next].getAttribute("data-tab"), true);
+        });
+      });
+
+      var wanted = location.hash.replace("#", "");
+      var valid = tabs.some(function (t) { return t.getAttribute("data-tab") === wanted; });
+      show(valid ? wanted : "available", false);
+    })();
+  </script>
+</body>
+</html>

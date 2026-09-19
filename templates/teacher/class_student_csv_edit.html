@@ -1,0 +1,241 @@
+{% extends 'teacher/master.html' %}
+
+{% block title %}
+Edit Student List — {{ class_obj.class_name }} — Testify Teacher
+{% endblock %}
+
+{% block page_title %}Student List{% endblock %}
+{% block page_subtitle %}Edit the student CSV for {{ class_obj.class_name }} — changes save automatically.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'my_class_student_csv_open' class_obj.id %}" target="_blank" class="btn btn-secondary btn-sm">Open Raw CSV</a>
+<button type="button" class="btn btn-secondary btn-sm" id="add-row-btn">+ Add Row</button>
+{% endblock %}
+
+{% block style %}
+#save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: var(--space-3, 12px);
+}
+
+#save-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border, #cbd5e1);
+}
+
+#save-status.saving .dot { background: #f59e0b; }
+#save-status.saved .dot { background: #16a34a; }
+#save-status.error .dot { background: #dc2626; }
+
+.csv-table-wrap {
+  overflow-x: auto;
+}
+
+table.csv-editable {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.csv-editable th, table.csv-editable td {
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 0;
+}
+
+table.csv-editable th {
+  background: rgba(37, 99, 235, 0.06);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+table.csv-editable td input {
+  width: 100%;
+  min-width: 120px;
+  border: none;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  background: transparent;
+  outline: none;
+}
+
+table.csv-editable td input:focus {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+table.csv-editable td.row-actions-cell {
+  width: 36px;
+  text-align: center;
+}
+{% endblock %}
+
+{% block content %}
+<div class="crumbs">
+  <a href="{% url 'teacher_dashboard' %}">Teacher</a><span class="sep">/</span>
+  <a href="{% url 'my_classes' %}">Classes</a><span class="sep">/</span>
+  <a href="{% url 'my_class_edit' class_obj.id %}">{{ class_obj.class_name }}</a><span class="sep">/</span>
+  <span class="current">Student List</span>
+</div>
+
+<div id="save-status"><span class="dot"></span><span id="save-status-text">No changes yet</span></div>
+
+<div class="card" style="padding:0;overflow:hidden;" data-reveal>
+  <div class="csv-table-wrap">
+    {% if headers %}
+    <table class="csv-editable" id="csv-table">
+      <thead>
+        <tr id="header-row">
+          {% for h in headers %}
+          <th><input type="text" class="header-cell" value="{{ h }}"></th>
+          {% endfor %}
+          <th style="width:36px;"></th>
+        </tr>
+      </thead>
+      <tbody id="csv-body">
+        {% for row in rows %}
+        <tr>
+          {% for cell in row %}
+          <td><input type="text" class="data-cell" value="{{ cell }}"></td>
+          {% endfor %}
+          <td class="row-actions-cell">
+            <button type="button" class="icon-btn danger delete-row-btn" aria-label="Delete row" title="Delete row">×</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center; padding:2rem;">
+      No CSV uploaded yet for this class. <a href="{% url 'my_class_edit' class_obj.id %}">Upload one</a> to start editing it here.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if headers %}
+<script>
+  const SAVE_URL = "{% url 'my_class_student_csv_save' class_obj.id %}";
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  const table = document.getElementById('csv-table');
+  const headerRow = document.getElementById('header-row');
+  const body = document.getElementById('csv-body');
+  const statusEl = document.getElementById('save-status');
+  const statusText = document.getElementById('save-status-text');
+
+  let saveTimer = null;
+
+  function columnCount() {
+    return headerRow.querySelectorAll('.header-cell').length;
+  }
+
+  function readTable() {
+    const headers = Array.from(headerRow.querySelectorAll('.header-cell')).map(i => i.value);
+    const rows = Array.from(body.querySelectorAll('tr')).map(tr =>
+      Array.from(tr.querySelectorAll('.data-cell')).map(i => i.value)
+    );
+    return { headers, rows };
+  }
+
+  function setStatus(state, text) {
+    statusEl.className = state;
+    statusText.textContent = text;
+  }
+
+  function scheduleAutosave() {
+    setStatus('saving', 'Saving…');
+    clearTimeout(saveTimer);
+    // Debounced -- waits for a pause in typing rather than saving on
+    // every single keystroke.
+    saveTimer = setTimeout(doSave, 800);
+  }
+
+  function doSave() {
+    const payload = readTable();
+    fetch(SAVE_URL, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.success) {
+          setStatus('saved', 'Saved');
+        } else {
+          setStatus('error', data.error || 'Could not save.');
+        }
+      })
+      .catch(() => setStatus('error', 'Could not save (network error).'));
+  }
+
+  function addDeleteHandler(btn) {
+    btn.addEventListener('click', function () {
+      btn.closest('tr').remove();
+      scheduleAutosave();
+    });
+  }
+
+  // ---- autosave on any edit (event delegation, covers rows added later) ----
+  table.addEventListener('input', function (e) {
+    if (e.target.classList.contains('data-cell') || e.target.classList.contains('header-cell')) {
+      scheduleAutosave();
+    }
+  });
+
+  document.querySelectorAll('.delete-row-btn').forEach(addDeleteHandler);
+
+  // ---- add row ----
+  document.getElementById('add-row-btn').addEventListener('click', function () {
+    const tr = document.createElement('tr');
+    for (let i = 0; i < columnCount(); i++) {
+      const td = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'data-cell';
+      td.appendChild(input);
+      tr.appendChild(td);
+    }
+    const actionTd = document.createElement('td');
+    actionTd.className = 'row-actions-cell';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'icon-btn danger delete-row-btn';
+    delBtn.setAttribute('aria-label', 'Delete row');
+    delBtn.title = 'Delete row';
+    delBtn.textContent = '×';
+    addDeleteHandler(delBtn);
+    actionTd.appendChild(delBtn);
+    tr.appendChild(actionTd);
+
+    body.appendChild(tr);
+    tr.querySelector('.data-cell').focus();
+  });
+
+  // ---- warn before leaving with an unsaved (in-flight) autosave ----
+  window.addEventListener('beforeunload', function (e) {
+    if (saveTimer) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+</script>
+{% endif %}
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    toast("{{ message|escapejs }}", { title: "{% if message.tags == 'error' %}Error{% else %}Success{% endif %}", type: "{% if message.tags == 'error' %}error{% else %}success{% endif %}" });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock %}

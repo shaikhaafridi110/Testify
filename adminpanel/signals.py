@@ -39,3 +39,28 @@ def on_answer_saved(sender, instance, **kwargs):
 @receiver(post_delete, sender=UserExamAnswer)
 def on_answer_deleted(sender, instance, **kwargs):
     recalculate_attempt(instance.attempt)
+
+
+
+
+
+
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+from .models import Exam
+from .utils import generate_result_csv
+
+
+@receiver(post_save, sender=Exam)
+def create_result_file_on_exam_create(sender, instance, created, **kwargs):
+    """
+    Fires the moment a teacher/admin creates an Exam tied to a Class.
+    Auto-builds the matching ExamResultFile + CSV (enrollment, status,
+    q_option, ...). Switch to `instance.status == 'published'` instead of
+    `created` if you'd rather this happen on publish, not on save.
+    """
+    if created:
+        generate_result_csv(instance)
