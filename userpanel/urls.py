@@ -7,6 +7,8 @@ urlpatterns = [
     path("otp/verify/", views.otp_verify, name="otp_verify"),
 
 
+    path("teacher-register/", views.teacher_register, name="teacher_register"),
+    path("check-email/", views.check_email, name="check_email"),
 
     path("otp/resend/", views.otp_resend, name="otp_resend"),
 
@@ -29,4 +31,9 @@ urlpatterns = [
 
     path("contact/", views.contact, name="contact"),
     path("logout/", views.logout_view, name="logout"),
+
+
+    path("notifications/", views.notifications, name="notifications"),
+    path("notifications/mark-all-read/", views.notification_mark_all_read, name="notification_mark_all_read"),
+    path("notifications/unread-count/", views.notification_unread_count, name="notification_unread_count"),
 ]

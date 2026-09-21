@@ -47,11 +47,11 @@ def on_answer_deleted(sender, instance, **kwargs):
 
 
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
-from .models import Exam
-from .utils import generate_result_csv
+from .models import Exam, Question
+from .utils import generate_result_csv, fill_default_q_option
 
 
 @receiver(post_save, sender=Exam)
@@ -59,8 +59,21 @@ def create_result_file_on_exam_create(sender, instance, created, **kwargs):
     """
     Fires the moment a teacher/admin creates an Exam tied to a Class.
     Auto-builds the matching ExamResultFile + CSV (enrollment, status,
-    q_option, ...). Switch to `instance.status == 'published'` instead of
-    `created` if you'd rather this happen on publish, not on save.
+    q_option, ...).
     """
     if created:
         generate_result_csv(instance)
+    else:
+        fill_default_q_option(instance)
+
+
+@receiver(post_save, sender=Question)
+def on_question_saved(sender, instance, **kwargs):
+    if instance.exam:
+        fill_default_q_option(instance.exam)
+
+
+@receiver(post_delete, sender=Question)
+def on_question_deleted(sender, instance, **kwargs):
+    if instance.exam:
+        fill_default_q_option(instance.exam)

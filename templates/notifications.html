@@ -1,0 +1,274 @@
+{% extends 'master.html' %}
+{% load static %}
+
+{% block title %}Notifications · Testify{% endblock %}
+{% block meta_description %}Your notifications on Testify.{% endblock %}
+
+{% block style %}
+  .notif-wrap {
+    max-width: 780px;
+    margin: 40px auto 80px;
+    padding: 0 20px;
+  }
+
+  .notif-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .notif-head h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .notif-badge-count {
+    background: #2548d6;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 999px;
+  }
+
+  .notif-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .notif-filter,
+  .notif-mark-all {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #dde1ec;
+    background: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    color: #333;
+  }
+
+  .notif-filter.active {
+    background: #2548d6;
+    color: #fff;
+    border-color: #2548d6;
+  }
+
+  .notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .notif-item {
+    display: flex;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 1px solid #e7e9f2;
+    background: #fff;
+    position: relative;
+  }
+
+  .notif-item.unread {
+    background: #f4f7ff;
+    border-color: #c9d4fb;
+  }
+
+  .notif-icon {
+    flex: 0 0 40px;
+    height: 40px;
+    width: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    background: #eef1fb;
+    color: #2548d6;
+  }
+
+  .notif-icon.type-exam { background: #eaf3ff; color: #1d6fd6; }
+  .notif-icon.type-result { background: #eafaf0; color: #1e9e5a; }
+  .notif-icon.type-class { background: #fff6e8; color: #c98a12; }
+  .notif-icon.type-system { background: #f2eefc; color: #7440d6; }
+
+  .notif-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .notif-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .notif-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1c2130;
+  }
+
+  .notif-time {
+    font-size: 0.75rem;
+    color: #8a90a3;
+    white-space: nowrap;
+  }
+
+  .notif-message {
+    margin-top: 4px;
+    font-size: 0.88rem;
+    color: #565c6f;
+    line-height: 1.5;
+  }
+
+  .notif-dot {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2548d6;
+  }
+
+  .notif-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8a90a3;
+  }
+
+  .notif-empty svg {
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  .notif-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 28px;
+  }
+
+  .notif-pagination a,
+  .notif-pagination span {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #dde1ec;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: #333;
+  }
+
+  .notif-pagination .current {
+    background: #2548d6;
+    color: #fff;
+    border-color: #2548d6;
+  }
+{% endblock %}
+
+{% block content %}
+<div class="notif-wrap">
+
+  <div class="notif-head">
+    <h1>
+      Notifications
+      {% if unread_count > 0 %}
+        <span class="notif-badge-count" id="notif-unread-count">{{ unread_count }}</span>
+      {% endif %}
+    </h1>
+
+    <div class="notif-actions">
+      <a href="{% url 'notifications' %}" class="notif-filter {% if not notification_type %}active{% endif %}">All</a>
+      <a href="?type=exam" class="notif-filter {% if notification_type == 'exam' %}active{% endif %}">Exam</a>
+      <a href="?type=result" class="notif-filter {% if notification_type == 'result' %}active{% endif %}">Result</a>
+      <a href="?type=class" class="notif-filter {% if notification_type == 'class' %}active{% endif %}">Class</a>
+      <a href="?type=system" class="notif-filter {% if notification_type == 'system' %}active{% endif %}">System</a>
+
+      {% if unread_count > 0 %}
+        <button type="button" class="notif-mark-all" id="mark-all-read-btn">Mark all read</button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if notifications %}
+    <div class="notif-list">
+      {% for un in notifications %}
+        <div class="notif-item {% if un.status == 'new' %}unread{% endif %}">
+          {% if un.status == 'new' %}<span class="notif-dot"></span>{% endif %}
+          <div class="notif-icon type-{{ un.notification.notification_type }}">
+            {% if un.notification.notification_type == 'exam' %}📝
+            {% elif un.notification.notification_type == 'result' %}📊
+            {% elif un.notification.notification_type == 'class' %}🏫
+            {% else %}🔔
+            {% endif %}
+          </div>
+          <div class="notif-body">
+            <div class="notif-title-row">
+              <span class="notif-title">{{ un.notification.title }}</span>
+              <span class="notif-time">{{ un.notification.created_at|date:"M d, Y · H:i" }}</span>
+            </div>
+            <div class="notif-message">{{ un.notification.message }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if notifications.has_other_pages %}
+      <div class="notif-pagination">
+        {% if notifications.has_previous %}
+          <a href="?page={{ notifications.previous_page_number }}{% if notification_type %}&type={{ notification_type }}{% endif %}">Prev</a>
+        {% endif %}
+        <span class="current">{{ notifications.number }} / {{ notifications.paginator.num_pages }}</span>
+        {% if notifications.has_next %}
+          <a href="?page={{ notifications.next_page_number }}{% if notification_type %}&type={{ notification_type }}{% endif %}">Next</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="notif-empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 01-3.46 0" />
+      </svg>
+      <p>No notifications yet.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('mark-all-read-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+      fetch("{% url 'notification_mark_all_read' %}", {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || ''
+        }
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.success) {
+            window.location.reload();
+          }
+        });
+    });
+  });
+</script>
+{% endblock %}

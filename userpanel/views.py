@@ -8,40 +8,337 @@ from django.http import Http404
 from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Avg, Count, Sum
-from adminpanel.models import User, Exam, UserExamAttempt, Contact, Question, QuestionOption, UserExamAnswer
+from adminpanel.models import User, Exam, UserExamAttempt, Contact, Question, QuestionOption, UserExamAnswer,TeacherInfo, Notification, UserNotification
 from adminpanel.signals import recalculate_attempt
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.db.models import Avg, Sum, Count
 
 import random
 from django.core.mail import send_mail
 from django.conf import settings
-from django.shortcuts import render, redirect, get_object_or_404
+
+
+from django.contrib.auth.decorators import login_required
+
+from django.db import IntegrityError, transaction
+
+import re
+from django.core.exceptions import ValidationError
+import re
+import secrets
+from datetime import timedelta
+ 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.paginator import Paginator
+from django.core.validators import validate_email
+from django.db import IntegrityError, transaction
+from django.db.models import Avg, Count, Q, Sum
+from django.http import Http404, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_GET
+ 
+from adminpanel.models import (
+    Contact, Exam, Question, QuestionOption, TeacherInfo, User,
+    UserExamAnswer, UserExamAttempt,
+)
+from adminpanel.signals import recalculate_attempt
+import smtplib
+GMAIL_MX_HOST = "gmail-smtp-in.l.google.com"
 
-from adminpanel.models import User
+def _gmail_mailbox_exists(email):
+    """
+    Asks Google's own mail server whether this Gmail address exists.
+    No email is sent: we stop right after the RCPT TO step.
+ 
+      True  -> Google accepted the address
+      False -> Google said the account does not exist
+      None  -> could not tell (port 25 blocked, timeout, Google refused to answer)
+ 
+    Only True/False are cached, so a temporary failure is retried next time.
+    """
+    if not getattr(settings, "GMAIL_SMTP_CHECK", True):
+        return None
+ 
+    cache_key = "gmail_exists:" + email
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached == "yes"
+ 
+    result = None
+    try:
+        smtp = smtplib.SMTP(GMAIL_MX_HOST, 25, timeout=6)
+        try:
+            smtp.ehlo()
+            smtp.mail("")                       # MAIL FROM:<>  (no sender needed)
+            code, reply = smtp.rcpt(email)      # RCPT TO:<email>
+            text = reply.decode(errors="ignore").lower()
+ 
+            if code in (250, 251):
+                result = True
+            elif code == 550 and ("5.1.1" in text or "does not exist" in text):
+                result = False                  # Google: "account does not exist"
+            # anything else (blocked, greylisted, policy) -> stay None
+        finally:
+            try:
+                smtp.quit()
+            except (smtplib.SMTPException, OSError):
+                pass
+    except (smtplib.SMTPException, OSError):
+        return None                             # cannot reach Google -> do not block
+ 
+    if result is not None:
+        cache.set(cache_key, "yes" if result else "no", 60 * 60 * 24)
+    return result
+ 
+ 
+
+# ----------------------------------------------------------------------
+# Email check
+# ----------------------------------------------------------------------
+# None  = any real email domain is accepted
+# {"gmail.com", "googlemail.com"} = accept Google (Gmail) addresses only
+ALLOWED_EMAIL_DOMAINS = None
+
+# Google addresses are trusted: no DNS lookup needed
+GOOGLE_DOMAINS = {"gmail.com", "googlemail.com"}
+
+EMAIL_RE = re.compile(
+    r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$"
+)
+
+
+def _domain_can_receive_mail(domain):
+    """
+    Optional DNS check (pip install dnspython). If dnspython is not installed,
+    or DNS is slow/unreachable, the check is skipped instead of blocking users.
+    """
+    try:
+        import dns.exception
+        import dns.resolver
+    except ImportError:
+        return True
+
+    for record in ("MX", "A"):
+        try:
+            dns.resolver.resolve(domain, record, lifetime=3)
+            return True
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
+            continue
+        except dns.exception.DNSException:
+            return True          # timeout etc. -> do not block the user
+    return False
+
+
+def _email_check(email):
+    """
+    Returns (ok, message). Used by both the live check and the form submit.
+      - bad format / not allowed / already in the users table -> (False, reason)
+      - Google address, not yet registered                    -> (True, "Google email ...")
+      - other address with a real mail domain                 -> (True, "Email looks good.")
+    """
+    if not email:
+        return False, "Email is required."
+    if len(email) > 50:
+        return False, "Email must be at most 50 characters."
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return False, "Enter a valid email address."
+
+    # stricter than Django: dotted domain, 2+ letter ending, no ".."
+    if not EMAIL_RE.match(email) or ".." in email:
+        return False, "Enter a valid email address, like name@example.com."
+
+    domain = email.rsplit("@", 1)[1]
+
+    if ALLOWED_EMAIL_DOMAINS and domain not in ALLOWED_EMAIL_DOMAINS:
+        return False, "Please use your Google (Gmail) email address."
+
+    # ---- already in the users table? (model has google_id) ----
+    existing = User.objects.filter(email__iexact=email).only("id", "google_id").first()
+    if existing:
+        if existing.google_id:
+            return False, "This email is already registered with Google. Use Continue with Google to sign in."
+        return False, "An account with this email already exists."
+
+    if domain in GOOGLE_DOMAINS:
+        if _gmail_mailbox_exists(email) is False:
+            return False, "Google says this Gmail address does not exist. Enter your real Gmail."
+        return True, "Google email, looks good."
+
+    if not _domain_can_receive_mail(domain):
+        return False, "This email domain does not exist or cannot receive mail."
+
+    return True, "Email looks good."
+
+
+@require_GET
+def check_email(request):
+    """Live check called by the registration form (no page refresh)."""
+    if _throttled(request, "check_email"):
+        return JsonResponse(
+            {"ok": False, "message": "Too many checks. Please wait a minute."}, status=429
+        )
+    email = request.GET.get("email", "").strip().lower()
+    ok, message = _email_check(email)
+    return JsonResponse({"ok": ok, "message": message})
+ 
+ 
+# ----------------------------------------------------------------------
+# View
+# ----------------------------------------------------------------------
+def teacher_register(request):
+    if request.user.is_authenticated:
+        return _redirect_for_role(request, request.user)
+
+    if request.method == "POST":
+        data = {
+            "name": request.POST.get("name", "").strip(),
+            "email": request.POST.get("email", "").strip().lower(),
+            "phone": request.POST.get("phone", "").strip(),
+            "college_name": request.POST.get("college_name", "").strip(),
+            "college_phone": request.POST.get("college_phone", "").strip(),
+            "qualification": request.POST.get("qualification", "").strip(),
+            "subject": request.POST.get("subject", "").strip(),
+            "experience": request.POST.get("experience", "").strip(),
+            "bio": request.POST.get("bio", "").strip(),
+        }
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+
+        # {field_name: message}  -> the template shows each one under its own field
+        errors = {}
+
+        # ---- required fields ----
+        labels = {
+            "name": "Full name",
+            "email": "Email",
+            "phone": "Phone number",
+            "college_name": "College name",
+            "college_phone": "College phone",
+            "qualification": "Qualification",
+            "subject": "Subject",
+        }
+        for field, label in labels.items():
+            if not data[field]:
+                errors[field] = f"{label} is required."
+
+        # ---- length limits (match model max_length) ----
+        limits = {
+            "name": ("Full name", 50),
+            "college_name": ("College name", 150),
+            "qualification": ("Qualification", 150),
+            "subject": ("Subject", 100),
+            "experience": ("Experience", 50),
+            "bio": ("Bio", 400),
+        }
+        for field, (label, limit) in limits.items():
+            if field not in errors and len(data[field]) > limit:
+                errors[field] = f"{label} must be at most {limit} characters."
+
+        # ---- email: must be a right email + unique ----
+        if "email" not in errors:
+            ok, msg = _email_check(data["email"])
+            if not ok:
+                errors["email"] = msg
+
+        # ---- phone: 10 digits + unique ----
+        if "phone" not in errors:
+            if not data["phone"].isdigit() or len(data["phone"]) != 10:
+                errors["phone"] = "Phone number must be exactly 10 digits."
+            elif User.objects.filter(phone=data["phone"]).exists():
+                errors["phone"] = "This phone number is already registered."
+
+        # ---- college phone: format ----
+        if "college_phone" not in errors and not re.fullmatch(r"[0-9+\-\s()]{6,20}", data["college_phone"]):
+            errors["college_phone"] = "Enter a valid phone number (6 to 20 digits)."
+        # (optional) one teacher per college phone
+        # elif TeacherInfo.objects.filter(college_phone=data["college_phone"]).exists():
+        #     errors["college_phone"] = "This college phone number is already registered."
+
+        # ---- passwords ----
+        if not password:
+            errors["password"] = "Password is required."
+        elif len(password) < 8:
+            errors["password"] = "Password must be at least 8 characters."
+
+        if not confirm_password:
+            errors["confirm_password"] = "Please confirm your password."
+        elif password != confirm_password:
+            errors["confirm_password"] = "Passwords do not match."
+
+        if errors:
+            return render(request, "teacher_register.html", {"form": data, "errors": errors})
+
+        # ---- create user + teacher info atomically ----
+        try:
+            with transaction.atomic():
+                user = User(
+                    name=data["name"],
+                    email=data["email"],
+                    phone=data["phone"],
+                    role="teacher",
+                    status="inactive",   # forces OTP email verification on first login
+                )
+                user.set_password(password)
+                user.save()
+
+                TeacherInfo.objects.create(
+                    user=user,
+                    college_name=data["college_name"],
+                    college_phone=data["college_phone"],
+                    qualification=data["qualification"],
+                    subject=data["subject"],
+                    experience=data["experience"] or None,
+                    bio=data["bio"] or None,
+                    approval_status="pending",
+                )
+        except IntegrityError:
+            # Race condition: another request took the email/phone just now
+            if User.objects.filter(email__iexact=data["email"]).exists():
+                errors["email"] = "An account with this email already exists."
+            if User.objects.filter(phone=data["phone"]).exists():
+                errors["phone"] = "This phone number is already registered."
+            if not errors:
+                errors["email"] = "Could not create the account. Please try again."
+            return render(request, "teacher_register.html", {"form": data, "errors": errors})
+
+        messages.success(
+            request,
+            "Registration submitted! Sign in to verify your email. "
+            "An admin must approve your account before you can access the teacher dashboard.",
+        )
+        return redirect("login")
+
+    return render(request, "teacher_register.html", {"form": {}, "errors": {}})
 
 
 def _generate_and_send_otp(user, purpose="login_verification"):
-    code = f"{random.randint(0, 999999):06d}"
+    code = f"{secrets.randbelow(1_000_000):06d}"
     user.otp = code
-    user.otp_expires_at = timezone.now() + timezone.timedelta(minutes=10)
+    user.otp_expires_at = timezone.now() + timedelta(minutes=10)
     user.otp_purpose = purpose
     user.otp_attempts = 0
     user.save(update_fields=["otp", "otp_expires_at", "otp_purpose", "otp_attempts"])
-
-    send_mail(
-        subject="Your Testify verification code",
-        message=f"Your verification code is {code}. It expires in 10 minutes.",
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-    )
-
+ 
+    try:
+        send_mail(
+            subject="Your Testify verification code",
+            message=f"Your verification code is {code}. It expires in 10 minutes.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+        )
+    except Exception:
+        return False
+    return True
+ 
 
 def _redirect_for_role(request, user):
     if user.role == "admin":
@@ -49,6 +346,7 @@ def _redirect_for_role(request, user):
     if user.role == "teacher":
         info = getattr(user, "teacher_info", None)
         if not info or info.approval_status != "approved":
+            logout(request)
             messages.error(request, "Your teacher account is still pending admin approval.")
             return redirect("login")
         return redirect("teacher_dashboard")
@@ -57,7 +355,6 @@ def _redirect_for_role(request, user):
 
 
 @login_required
-
 def profile(request):
     """
     Logged-in user's profile: view + edit basic info (name, phone, profile image),
@@ -126,53 +423,88 @@ def logout_view(request):
     messages.success(request, "You have been signed out.")
     return redirect("login")
 
-
-
 def login_view(request):
-    """
-    Single email+password login form.
-      - email exists in DB  -> normal login (with OTP step if inactive)
-      - email doesn't exist -> error message, back to login (no auto-create)
-    """
     if request.user.is_authenticated:
         return _redirect_for_role(request, request.user)
 
     if request.method == "POST":
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "")
+        remember = request.POST.get("remember") == "on"
 
-        if not email or not password:
-            messages.error(request, "Please enter both email and password.")
+        errors = {}
+
+        if not email:
+            errors["email"] = "Email is required."
+        else:
+            try:
+                validate_email(email)
+            except ValidationError:
+                errors["email"] = "Enter a valid email address."
+
+        if not password:
+            errors["password"] = "Password is required."
+
+        def _fail():
+            # flash: shown once on the next GET, then gone
+            request.session["login_flash"] = {
+                "errors": errors,
+                "email": email,
+                "remember": remember,
+            }
             return redirect("login")
+
+        if errors:
+            return _fail()
 
         user = User.objects.filter(email__iexact=email).first()
 
-        # ---------- EMAIL NOT IN DB ----------
         if user is None:
-            messages.error(request, "No account found with that email address.")
-            return redirect("login")
+            errors["email"] = "No account found with this email."
+        elif not user.has_usable_password():
+            errors["password"] = "This account signs in with Google. Use Continue with Google."
+        elif not user.check_password(password):
+            errors["password"] = "Incorrect password."
+        elif user.status == "blocked":
+            errors["form"] = "Your account has been blocked. Please contact support."
 
-        # ---------- EMAIL EXISTS: normal login path ----------
-        if not user.check_password(password):
-            messages.error(request, "Invalid password.")
-            return redirect("login")
+        if errors:
+            return _fail()
 
-        if user.status == "blocked":
-            messages.error(request, "Your account has been blocked. Please contact support.")
-            return redirect("login")
-
+        # inactive -> email OTP step
         if user.status == "inactive":
-            _generate_and_send_otp(user, purpose="login_verification")
+            if not _generate_and_send_otp(user, purpose="login_verification"):
+                errors["form"] = "We could not send the verification email. Please try again."
+                return _fail()
             request.session["otp_user_id"] = user.pk
             messages.success(request, "We've emailed you a verification code.")
             return redirect("otp_verify")
 
         login(request, user, backend="adminpanel.backends.StatusAwareBackend")
+        if not remember:
+            request.session.set_expiry(0)
         return _redirect_for_role(request, user)
 
-    return render(request, "login.html")
+    # GET: pop() reads the flash and deletes it, so a refresh shows a blank form
+    flash = request.session.pop("login_flash", {})
+    return render(request, "login.html", {
+        "errors": flash.get("errors", {}),
+        "email": flash.get("email", ""),
+        "remember": flash.get("remember", False),
+    })
 
 
+def _throttled(request, key, limit=30, window=60):
+    ip = request.META.get("REMOTE_ADDR", "unknown")
+    cache_key = f"throttle:{key}:{ip}"
+    cache.add(cache_key, 0, window)          # create with an expiry if missing
+    try:
+        count = cache.incr(cache_key)
+    except ValueError:                        # key expired between the two calls
+        cache.set(cache_key, 1, window)
+        count = 1
+    return count > limit
+ 
 
 def complete_profile(request):
     user_id = request.session.get("complete_profile_user_id")
@@ -249,34 +581,48 @@ def otp_verify(request):
     if not user_id:
         return redirect("login")
     user = get_object_or_404(User, pk=user_id)
-
+ 
     if request.method == "POST":
         code = request.POST.get("otp", "").strip()
-
-        if not user.otp or not user.otp_expires_at or timezone.now() > user.otp_expires_at:
-            messages.error(request, "This code has expired. Please request a new one.")
-            return redirect("otp_verify")
+ 
         if user.otp_attempts >= 5:
             messages.error(request, "Too many attempts. Please request a new code.")
             return redirect("otp_verify")
-        if code != user.otp:
+        if not user.otp or not user.otp_expires_at or timezone.now() > user.otp_expires_at:
+            messages.error(request, "This code has expired. Please request a new one.")
+            return redirect("otp_verify")
+        if not secrets.compare_digest(code, user.otp):
             user.otp_attempts += 1
             user.save(update_fields=["otp_attempts"])
             messages.error(request, "Incorrect code. Please try again.")
             return redirect("otp_verify")
-
+ 
         user.status = "active"
         user.otp = None
         user.otp_expires_at = None
         user.otp_verified_at = timezone.now()
         user.otp_attempts = 0
         user.save(update_fields=["status", "otp", "otp_expires_at", "otp_verified_at", "otp_attempts"])
-
+ 
         del request.session["otp_user_id"]
         login(request, user, backend="adminpanel.backends.StatusAwareBackend")
         return _redirect_for_role(request, user)
-
+ 
     return render(request, "otp_verify.html", {"email": user.email})
+ 
+ 
+def otp_resend(request):
+    user_id = request.session.get("otp_user_id")
+    if not user_id:
+        return redirect("login")
+    user = get_object_or_404(User, pk=user_id)
+ 
+    if _generate_and_send_otp(user, purpose="login_verification"):
+        messages.success(request, "A new code has been sent to your email.")
+    else:
+        messages.error(request, "We could not send the email. Please try again in a moment.")
+    return redirect("otp_verify")
+
 
 
 def otp_resend(request):
@@ -699,6 +1045,7 @@ def leaderboard(request):
     })
 
 def contact(request):
+
     """
     Renders the public Contact page and handles the contact form submission.
     """
@@ -723,3 +1070,62 @@ def contact(request):
         return redirect("contact")
 
     return render(request, "contact.html")
+
+
+
+
+@login_required
+def notifications(request):
+    """
+    Logged-in user's notification inbox, newest first. Notifications shown
+    on the current page are marked read as soon as they're rendered.
+    """
+    user = request.user
+
+    user_notifications_qs = (
+        UserNotification.objects.filter(user=user)
+        .select_related("notification")
+        .order_by("-created_at")
+    )
+
+    notification_type = request.GET.get("type", "").strip()
+    if notification_type:
+        user_notifications_qs = user_notifications_qs.filter(
+            notification__notification_type=notification_type
+        )
+
+    unread_count = UserNotification.objects.filter(user=user, status="new").count()
+
+    paginator = Paginator(user_notifications_qs, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Mark this page's still-unread rows as read.
+    ids_to_mark = [un.id for un in page_obj if un.status == "new"]
+    if ids_to_mark:
+        UserNotification.objects.filter(id__in=ids_to_mark).update(
+            status="read", read_at=timezone.now()
+        )
+
+    return render(request, "notifications.html", {
+        "notifications": page_obj,
+        "unread_count": unread_count,
+        "notification_type": notification_type,
+    })
+
+
+@login_required
+def notification_mark_all_read(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
+    UserNotification.objects.filter(user=request.user, status="new").update(
+        status="read", read_at=timezone.now()
+    )
+    return JsonResponse({"success": True})
+
+
+@login_required
+def notification_unread_count(request):
+    """Lightweight JSON endpoint for a header badge — poll this periodically."""
+    count = UserNotification.objects.filter(user=request.user, status="new").count()
+    return JsonResponse({"unread_count": count})

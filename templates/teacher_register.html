@@ -1,0 +1,378 @@
+{% extends 'master.html' %}
+{% block title %}Teacher Registration — Testify{% endblock %}
+{% block meta_description %}Register as a teacher on Testify. An admin reviews every application before the account goes live.{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+{% include 'auth_styles.html' %}
+
+<main class="au-wrap">
+  <div class="au-shell">
+
+    <!-- ===== Left rail ===== -->
+    <aside class="au-rail">
+      <a href="{% url 'index' %}" class="au-brand">
+        <span class="au-brand-mark">T</span><span>Testify</span>
+      </a>
+
+      <div>
+        <h2>Teach on Testify</h2>
+        <p class="au-lead">Create classes, build exams, and see how your students perform. Every teacher account is checked by an admin first.</p>
+      </div>
+
+      <ol class="au-steps">
+        <li class="is-current">
+          <span class="au-step-num">1</span>
+          <div>
+            <div class="au-step-title">Fill in this form</div>
+            <div class="au-step-text">Your details and your college's details.</div>
+          </div>
+        </li>
+        <li>
+          <span class="au-step-num">2</span>
+          <div>
+            <div class="au-step-title">Verify your email</div>
+            <div class="au-step-text">Sign in and enter the 6-digit code we send you.</div>
+          </div>
+        </li>
+        <li>
+          <span class="au-step-num">3</span>
+          <div>
+            <div class="au-step-title">Wait for approval</div>
+            <div class="au-step-text">An admin reviews your application.</div>
+          </div>
+        </li>
+        <li>
+          <span class="au-step-num">4</span>
+          <div>
+            <div class="au-step-title">Open your dashboard</div>
+            <div class="au-step-text">Add your class and create your first exam.</div>
+          </div>
+        </li>
+      </ol>
+    </aside>
+
+    <!-- ===== Form ===== -->
+    <section class="au-main">
+      <header class="au-head">
+        <h1>Teacher registration</h1>
+        <p>Fields marked with <span style="color:var(--au-danger)">*</span> are required.</p>
+      </header>
+
+      {% if messages %}
+        <div class="au-alerts">
+          {% for message in messages %}
+            {% if message.tags == 'success' %}
+              <div class="au-alert au-alert--success" role="status">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>{{ message }}</span>
+              </div>
+            {% else %}
+              <div class="au-alert au-alert--error" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>{{ message }}</span>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if errors %}
+        <div class="au-alerts">
+          <div class="au-alert au-alert--error" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span>Please fix the {{ errors|length }} highlighted field{{ errors|length|pluralize }} below.</span>
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'teacher_register' %}" id="teacherForm" novalidate>
+        {% csrf_token %}
+
+        <!-- Personal -->
+        <div class="au-section">
+          <div class="au-section-head">
+            <span class="au-section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </span>
+            <h3>About you</h3>
+            <span class="au-rule"></span>
+          </div>
+
+          <div class="au-grid">
+            <div class="au-field">
+              <label class="au-label" for="t-name">Full name<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <input id="t-name" {% if errors.name %}class="is-invalid" aria-invalid="true" {% endif %}type="text" name="name" maxlength="50" placeholder="e.g. Priya Shah" value="{{ form.name }}" autocomplete="name" required>
+              </div>
+              <div class="au-hint{% if errors.name %} is-error{% endif %}" data-hint-for="t-name">{% if errors.name %}{{ errors.name }}{% else %}{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-email">Email<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <input id="t-email" data-check-url="{% url 'check_email' %}" {% if errors.email %}class="is-invalid" aria-invalid="true" {% endif %}type="email" name="email" maxlength="50" placeholder="you@college.edu" value="{{ form.email }}" autocomplete="email" required>
+              </div>
+              <div class="au-hint{% if errors.email %} is-error{% endif %}" data-hint-for="t-email">{% if errors.email %}{{ errors.email }}{% else %}We'll send a verification code here.{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-phone">Phone<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                <input id="t-phone" {% if errors.phone %}class="is-invalid" aria-invalid="true" {% endif %}type="tel" name="phone" inputmode="numeric" maxlength="10" pattern="\d{10}" placeholder="10 digits" value="{{ form.phone }}" autocomplete="tel" required>
+              </div>
+              <div class="au-hint{% if errors.phone %} is-error{% endif %}" data-hint-for="t-phone">{% if errors.phone %}{{ errors.phone }}{% else %}Must not be used by another account.{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-qual">Qualification<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                <input id="t-qual" {% if errors.qualification %}class="is-invalid" aria-invalid="true" {% endif %}type="text" name="qualification" maxlength="150" placeholder="e.g. M.Sc., B.Ed." value="{{ form.qualification }}" required>
+              </div>
+              <div class="au-hint{% if errors.qualification %} is-error{% endif %}" data-hint-for="t-qual">{% if errors.qualification %}{{ errors.qualification }}{% else %}{% endif %}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Institution -->
+        <div class="au-section">
+          <div class="au-section-head">
+            <span class="au-section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>
+            </span>
+            <h3>Where you teach</h3>
+            <span class="au-rule"></span>
+          </div>
+
+          <div class="au-grid">
+            <div class="au-field">
+              <label class="au-label" for="t-college">College name<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path></svg>
+                <input id="t-college" {% if errors.college_name %}class="is-invalid" aria-invalid="true" {% endif %}type="text" name="college_name" maxlength="150" placeholder="Full name of your college" value="{{ form.college_name }}" required>
+              </div>
+              <div class="au-hint{% if errors.college_name %} is-error{% endif %}" data-hint-for="t-college">{% if errors.college_name %}{{ errors.college_name }}{% else %}{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-cphone">College phone<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                <input id="t-cphone" {% if errors.college_phone %}class="is-invalid" aria-invalid="true" {% endif %}type="tel" name="college_phone" maxlength="20" placeholder="Office or department number" value="{{ form.college_phone }}" required>
+              </div>
+              <div class="au-hint{% if errors.college_phone %} is-error{% endif %}" data-hint-for="t-cphone">{% if errors.college_phone %}{{ errors.college_phone }}{% else %}The admin may call this to verify you.{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-subject">Subject<span class="au-req">*</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <input id="t-subject" {% if errors.subject %}class="is-invalid" aria-invalid="true" {% endif %}type="text" name="subject" maxlength="100" placeholder="e.g. Data Structures" value="{{ form.subject }}" required>
+              </div>
+              <div class="au-hint{% if errors.subject %} is-error{% endif %}" data-hint-for="t-subject">{% if errors.subject %}{{ errors.subject }}{% else %}{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-exp">Experience <span class="au-opt">optional</span></label>
+              <div class="au-control">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <input id="t-exp" {% if errors.experience %}class="is-invalid" aria-invalid="true" {% endif %}type="text" name="experience" maxlength="50" placeholder="e.g. 5 years" value="{{ form.experience }}">
+              </div>
+              <div class="au-hint{% if errors.experience %} is-error{% endif %}" data-hint-for="t-exp">{% if errors.experience %}{{ errors.experience }}{% else %}{% endif %}</div>
+            </div>
+
+            <div class="au-field au-full">
+              <label class="au-label" for="t-bio">
+                <span>Short bio <span class="au-opt">optional</span></span>
+                <span class="au-opt" id="bioCount">0 / 400</span>
+              </label>
+              <div class="au-control">
+                <textarea id="t-bio" {% if errors.bio %}class="is-invalid" aria-invalid="true" {% endif %}name="bio" rows="3" maxlength="400" placeholder="A line or two about what you teach and how.">{{ form.bio }}</textarea>
+              </div>
+              {% if errors.bio %}<div class="au-hint is-error" data-hint-for="t-bio">{{ errors.bio }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Security -->
+        <div class="au-section">
+          <div class="au-section-head">
+            <span class="au-section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <h3>Set your password</h3>
+            <span class="au-rule"></span>
+          </div>
+
+          <div class="au-grid">
+            <div class="au-field">
+              <label class="au-label" for="t-pw">Password<span class="au-req">*</span></label>
+              <div class="au-control au-control--pw">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <input id="t-pw" {% if errors.password %}class="is-invalid" aria-invalid="true" {% endif %}type="password" name="password" minlength="8" placeholder="At least 8 characters" autocomplete="new-password" required>
+                <button type="button" class="au-toggle" data-toggle="t-pw" aria-label="Show password">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+              <div class="au-meter" id="pwMeter" data-level="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+              <div class="au-hint{% if errors.password %} is-error{% endif %}" id="pwHint">{% if errors.password %}{{ errors.password }}{% else %}Use letters, numbers, and a symbol for a stronger password.{% endif %}</div>
+            </div>
+
+            <div class="au-field">
+              <label class="au-label" for="t-pw2">Confirm password<span class="au-req">*</span></label>
+              <div class="au-control au-control--pw">
+                <svg class="au-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <input id="t-pw2" {% if errors.confirm_password %}class="is-invalid" aria-invalid="true" {% endif %}type="password" name="confirm_password" placeholder="Type it again" autocomplete="new-password" required>
+                <button type="button" class="au-toggle" data-toggle="t-pw2" aria-label="Show password">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+              <div class="au-hint{% if errors.confirm_password %} is-error{% endif %}" id="pw2Hint">{% if errors.confirm_password %}{{ errors.confirm_password }}{% endif %}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="au-footer">
+          <p class="au-note">You can't open the teacher dashboard until an admin approves your account.</p>
+          <button type="submit" class="au-submit" id="trSubmit">Submit application</button>
+        </div>
+      </form>
+
+      <p class="au-signin">Already registered? <a href="{% url 'login' %}">Sign in</a></p>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById('teacherForm');
+  if (!form) return;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var pw = $('t-pw'), pw2 = $('t-pw2');
+  var meter = $('pwMeter'), pwHint = $('pwHint'), pw2Hint = $('pw2Hint');
+
+  /* Digits only for the personal phone number */
+  $('t-phone').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 10);
+  });
+
+  /* Bio character counter */
+  var bio = $('t-bio'), bioCount = $('bioCount');
+  function updateBio() { bioCount.textContent = bio.value.length + ' / 400'; }
+  bio.addEventListener('input', updateBio);
+  updateBio();
+
+  /* Show / hide password */
+  document.querySelectorAll('[data-toggle]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = $(btn.getAttribute('data-toggle'));
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  });
+
+  /* Password strength */
+  function strength(v) {
+    var s = 0;
+    if (v.length >= 8) s++;
+    if (/[a-z]/.test(v) && /[A-Z]/.test(v)) s++;
+    if (/\d/.test(v)) s++;
+    if (/[^A-Za-z0-9]/.test(v)) s++;
+    return v.length ? Math.max(1, s) : 0;
+  }
+  var labels = ['Use letters, numbers, and a symbol for a stronger password.', 'Weak', 'Fair', 'Good', 'Strong'];
+  pw.addEventListener('input', function () {
+    var lvl = strength(pw.value);
+    meter.setAttribute('data-level', lvl);
+    pwHint.textContent = labels[lvl];
+    pwHint.className = 'au-hint' + (lvl === 4 ? ' is-ok' : '');
+    checkMatch();
+  });
+
+  /* Confirm password */
+  function checkMatch() {
+    if (!pw2.value) { pw2Hint.textContent = ''; pw2.classList.remove('is-invalid'); return; }
+    var ok = pw.value === pw2.value;
+    pw2Hint.textContent = ok ? 'Passwords match.' : 'Passwords do not match.';
+    pw2Hint.className = 'au-hint ' + (ok ? 'is-ok' : 'is-error');
+    pw2.classList.toggle('is-invalid', !ok);
+  }
+  pw2.addEventListener('input', checkMatch);
+
+  /* Client-side required check (server still validates everything) */
+  form.addEventListener('submit', function (e) {
+    var bad = null;
+    form.querySelectorAll('input[required]').forEach(function (el) {
+      var empty = !el.value.trim();
+      el.classList.toggle('is-invalid', empty);
+      if (empty && !bad) bad = el;
+    });
+    if (!bad) {
+      if (!/^\d{10}$/.test($('t-phone').value)) {
+        $('t-phone').classList.add('is-invalid'); bad = $('t-phone');
+      } else if (pw.value.length < 8) {
+        pw.classList.add('is-invalid'); bad = pw;
+      } else if (pw.value !== pw2.value) {
+        pw2.classList.add('is-invalid'); bad = pw2;
+      }
+    }
+    if (bad) { e.preventDefault(); bad.focus(); return; }
+    var btn = $('trSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+  });
+
+  function clearServerError(el) {
+    el.classList.remove('is-invalid');
+    var h = form.querySelector('[data-hint-for="' + el.id + '"].is-error');
+    if (h) h.hidden = true;
+  }
+  form.querySelectorAll('input, textarea').forEach(function (el) {
+    el.addEventListener('input', function () { clearServerError(el); });
+  });
+  /* Live email check (no page refresh) */
+  var emailEl = $('t-email');
+  var emailHint = form.querySelector('[data-hint-for="t-email"]');
+  var EMAIL_DEFAULT = "We'll send a verification code here.";
+  var emailTimer = null, emailSeq = 0;
+
+  function setEmailHint(kind, msg) {          // kind: '', 'is-ok' or 'is-error'
+    emailHint.hidden = false;
+    emailHint.textContent = msg;
+    emailHint.className = 'au-hint' + (kind ? ' ' + kind : '');
+    emailEl.classList.toggle('is-invalid', kind === 'is-error');
+  }
+  function runEmailCheck() {
+    var v = emailEl.value.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v)) return;   // wait until it looks like an email
+    var seq = ++emailSeq;
+    setEmailHint('', 'Checking\u2026');
+    fetch(emailEl.getAttribute('data-check-url') + '?email=' + encodeURIComponent(v), {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (seq === emailSeq) setEmailHint(d.ok ? 'is-ok' : 'is-error', d.message); })
+      .catch(function () {                      // e.g. server or middleware returned HTML: the submit still validates
+        if (seq === emailSeq) setEmailHint('', EMAIL_DEFAULT);
+      });
+  }
+  emailEl.addEventListener('input', function () {
+    clearTimeout(emailTimer);
+    emailSeq++;                                 // ignore any response still in flight
+    setEmailHint('', EMAIL_DEFAULT);            // bring back the default hint while typing
+    emailTimer = setTimeout(runEmailCheck, 500);
+  });
+  emailEl.addEventListener('blur', runEmailCheck);
+
+  var firstErr = form.querySelector('.is-invalid');
+  if (firstErr) firstErr.focus();
+})();
+</script>
+{% endblock %}

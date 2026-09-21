@@ -8,6 +8,7 @@ from adminpanel.models import Class, Exam, QuestionOption
 from adminpanel.utils import (
     read_class_roster, derive_password, get_student_row,
     set_enrolled, record_submission, parse_q_option_count,
+    fill_default_q_option,
 )
 
 SESSION_EXPIRY_DAYS = 180  # roughly a semester
@@ -114,7 +115,7 @@ def student_login(request, class_id):
 
     # already signed in to this class -> straight to the exams page
     if request.student_enrollment:
-        return redirect("studentpanel:exams", class_id=class_obj.id)
+            return redirect("studentpanel:exams", class_id=class_obj.id)
 
     if request.method == "POST":
         enrollment_no = request.POST.get("enrollment_no", "").strip()
@@ -168,6 +169,7 @@ def exams_list(request, class_id):
 
     available, upcoming, closed, completed = [], [], [], []
     for exam in exams:
+        fill_default_q_option(exam)
         row = _safe_student_row(exam, enrollment_no)
         exam.creator_name = _creator_name(exam)
         exam.question_count = _question_count(exam, row)
@@ -232,6 +234,8 @@ def take_exam(request, class_id, exam_id):
         messages.error(request, f"“{exam.title}” has closed and can no longer be started.")
         return redirect("studentpanel:exams", class_id=class_id)
 
+    fill_default_q_option(exam)
+
     row = _safe_student_row(exam, enrollment_no)
     if row is None:
         messages.error(request, "You aren't listed for this exam. Please contact your teacher.")
@@ -242,6 +246,9 @@ def take_exam(request, class_id, exam_id):
 
     set_enrolled(exam, enrollment_no)
 
+    updated_row = _safe_student_row(exam, enrollment_no)
+    if updated_row is not None:
+        row = updated_row
     q_cap = parse_q_option_count(row.get("q_option"))
     questions = list(exam.questions.order_by("question_order").prefetch_related("options"))
     if q_cap:
@@ -343,21 +350,38 @@ def _finalize_submission(exam, enrollment_no, questions, progress, request, sess
     marks_earned = 0
     max_possible = sum(q.marks for q in questions)
 
+    # Build per-question selected option positions for q_option analysis
+    answer_options = []
+
     for q in questions:
         selected_id = answers.get(str(q.id))
         if not selected_id:
             skip += 1
+            answer_options.append("0")  # 0 = skipped
             continue
         try:
             option = QuestionOption.objects.get(id=selected_id, question=q)
         except QuestionOption.DoesNotExist:
             skip += 1
+            answer_options.append("0")  # 0 = skipped/invalid
             continue
         if option.is_correct:
             correct += 1
             marks_earned += q.marks
         else:
             wrong += 1
+
+        # Find the 1-based position of the selected option among this question's options
+        options_list = list(q.options.order_by("id"))
+        position = 0
+        for i, opt in enumerate(options_list, 1):
+            if opt.id == option.id:
+                position = i
+                break
+        answer_options.append(str(position))
+
+    # q_option_answers = "2,3,1,4,0,2,..." (option number per question, 0=skipped)
+    q_option_answers = ",".join(answer_options)
 
     total = len(questions)
     percentage = (marks_earned / max_possible * 100) if max_possible else 0
@@ -367,7 +391,8 @@ def _finalize_submission(exam, enrollment_no, questions, progress, request, sess
     )
     passed = marks_earned >= passing_threshold
 
-    record_submission(exam, enrollment_no, total, correct, wrong, skip, percentage, passed)
+    record_submission(exam, enrollment_no, total, correct, wrong, skip, percentage, passed,
+                      q_option_answers=q_option_answers)
 
     if session_key in request.session:
         del request.session[session_key]

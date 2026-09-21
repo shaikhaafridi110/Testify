@@ -1,0 +1,366 @@
+<style>
+  /* ---------- Scoped to the teacher registration page (prefix: au-) ---------- */
+  .au-wrap {
+    --au-accent: var(--primary, #3b5bdb);
+    --au-accent-soft: rgba(59, 91, 219, 0.09);
+    --au-ink: var(--text, #1c2233);
+    --au-muted: var(--text-muted, #6b7280);
+    --au-line: var(--border, #e3e6ee);
+    --au-surface: var(--surface, #ffffff);
+    --au-danger: #dc2626;
+    --au-ok: #16a34a;
+
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: clamp(1rem, 4vw, 3rem) 1rem;
+  }
+
+  .au-shell {
+    width: 100%;
+    max-width: 1080px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    border: 1px solid var(--au-line);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--au-surface);
+    box-shadow: 0 24px 60px -30px rgba(20, 30, 70, 0.35);
+  }
+
+  /* ---------- Left rail: what happens after you register ---------- */
+  .au-rail {
+    background: var(--au-accent);
+    color: #fff;
+    padding: 2.25rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    position: relative;
+  }
+  .au-rail::after {
+    content: "";
+    position: absolute;
+    inset: auto -60px -60px auto;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 36px solid rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+  .au-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+  .au-brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--au-accent);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+  }
+  .au-rail h2 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+    margin: 0 0 0.5rem;
+    color: #fff;
+  }
+  .au-rail p.au-lead {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  /* The steps are a real sequence, so numbering is meaningful here. */
+  .au-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .au-steps li {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 0.85rem;
+    padding-bottom: 1.4rem;
+    position: relative;
+  }
+  .au-steps li:last-child { padding-bottom: 0; }
+  .au-steps li:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 30px;
+    bottom: 2px;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .au-step-num {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    display: grid;
+    place-items: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .au-steps li.is-current .au-step-num {
+    background: #fff;
+    color: var(--au-accent);
+    border-color: #fff;
+  }
+  .au-step-title { font-weight: 600; font-size: 0.93rem; }
+  .au-step-text {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.78);
+    margin-top: 0.15rem;
+  }
+
+  /* ---------- Right: the form ---------- */
+  .au-main { padding: 2.25rem clamp(1.25rem, 3.5vw, 2.75rem) 2rem; }
+  .au-head h1 { margin: 0 0 0.3rem; font-size: 1.7rem; color: var(--au-ink); }
+  .au-head p { margin: 0; color: var(--au-muted); font-size: 0.95rem; }
+
+  .au-alerts { margin-top: 1.25rem; display: grid; gap: 0.5rem; }
+  .au-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.7rem 0.95rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  .au-alert svg { flex-shrink: 0; margin-top: 2px; }
+  .au-alert--error {
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.25);
+    color: var(--au-danger);
+  }
+  .au-alert--success {
+    background: rgba(22, 163, 74, 0.08);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+    color: var(--au-ok);
+  }
+
+  .au-section { margin-top: 1.75rem; }
+  .au-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+  }
+  .au-section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--au-accent-soft);
+    color: var(--au-accent);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .au-section-head h3 {
+    margin: 0;
+    font-size: 1.02rem;
+    color: var(--au-ink);
+  }
+  .au-section-head span.au-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--au-line);
+  }
+
+  /* Two columns per row; collapses to one on small screens */
+  .au-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.1rem;
+  }
+  .au-full { grid-column: 1 / -1; }
+
+  .au-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .au-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--au-ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .au-label .au-req { color: var(--au-danger); margin-left: 2px; }
+  .au-label .au-opt { font-weight: 400; color: var(--au-muted); font-size: 0.78rem; }
+
+  .au-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .au-control > svg.au-ico {
+    position: absolute;
+    left: 12px;
+    color: var(--au-muted);
+    pointer-events: none;
+  }
+  .au-control input,
+  .au-control textarea {
+    width: 100%;
+    font: inherit;
+    font-size: 0.93rem;
+    color: var(--au-ink);
+    background: var(--au-surface);
+    border: 1.5px solid var(--au-line);
+    border-radius: 10px;
+    padding: 0.62rem 0.85rem 0.62rem 2.5rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .au-control textarea {
+    padding-left: 0.85rem;
+    resize: vertical;
+    min-height: 92px;
+    line-height: 1.5;
+  }
+  .au-control input::placeholder,
+  .au-control textarea::placeholder { color: #a3a9b8; }
+  .au-control input:focus,
+  .au-control textarea:focus {
+    outline: none;
+    border-color: var(--au-accent);
+    box-shadow: 0 0 0 3px var(--au-accent-soft);
+  }
+  .au-control input.is-invalid { border-color: var(--au-danger); }
+  .au-control input.is-invalid:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+
+  .au-toggle {
+    position: absolute;
+    right: 6px;
+    background: none;
+    border: 0;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--au-muted);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .au-toggle:hover { color: var(--au-ink); }
+  .au-toggle:focus-visible { outline: 2px solid var(--au-accent); }
+  .au-control--pw input { padding-right: 2.6rem; }
+
+  .au-hint { font-size: 0.78rem; color: var(--au-muted); min-height: 1.1em; }
+  .au-hint.is-error { color: var(--au-danger); }
+  .au-hint.is-ok { color: var(--au-ok); }
+
+  /* Password strength meter */
+  .au-meter {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .au-meter i {
+    height: 4px;
+    border-radius: 4px;
+    background: var(--au-line);
+    transition: background 0.2s;
+  }
+  .au-meter[data-level="1"] i:nth-child(-n+1) { background: #ef4444; }
+  .au-meter[data-level="2"] i:nth-child(-n+2) { background: #f59e0b; }
+  .au-meter[data-level="3"] i:nth-child(-n+3) { background: #84cc16; }
+  .au-meter[data-level="4"] i:nth-child(-n+4) { background: var(--au-ok); }
+
+  .au-footer {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--au-line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .au-note { font-size: 0.82rem; color: var(--au-muted); max-width: 32ch; }
+  .au-submit {
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: #fff;
+    background: var(--au-accent);
+    border: 0;
+    border-radius: 11px;
+    padding: 0.8rem 1.9rem;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.15s, filter 0.15s;
+    box-shadow: 0 8px 20px -10px var(--au-accent);
+  }
+  .au-submit:hover { filter: brightness(1.07); }
+  .au-submit:active { transform: translateY(1px); }
+  .au-submit:focus-visible { outline: 3px solid var(--au-accent-soft); outline-offset: 2px; }
+  .au-submit[disabled] { opacity: 0.6; cursor: wait; }
+
+  .au-signin { margin-top: 1.25rem; text-align: center; font-size: 0.9rem; color: var(--au-muted); }
+  .au-signin a { color: var(--au-accent); font-weight: 600; text-decoration: none; }
+  .au-signin a:hover { text-decoration: underline; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .au-shell { grid-template-columns: 1fr; }
+    .au-rail { padding: 1.5rem 1.5rem; gap: 1.25rem; }
+    .au-steps { display: none; }   /* keep the phone view focused on the form */
+    .au-rail::after { display: none; }
+  }
+  @media (max-width: 560px) {
+    .au-grid { grid-template-columns: 1fr; }
+    .au-footer { flex-direction: column-reverse; align-items: stretch; }
+    .au-note { max-width: none; text-align: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .au-wrap * { transition: none !important; }
+  }
+
+  /* ---- additions: field errors + login layout ---- */
+  .au-hint.is-error { font-weight: 500; }
+  .au-hint[hidden] { display: none; }
+  .au-wrap--center { align-items: center; }
+  .au-shell--login { max-width: 920px; grid-template-columns: 340px 1fr; }
+  .au-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; position: relative; z-index: 1; }
+  .au-checks li { display: grid; grid-template-columns: 22px 1fr; gap: 0.7rem; font-size: 0.92rem; line-height: 1.45; color: rgba(255,255,255,0.9); }
+  .au-checks svg { margin-top: 2px; }
+  .au-rail-link { position: relative; z-index: 1; margin-top: auto; font-size: 0.88rem; color: rgba(255,255,255,0.85); }
+  .au-rail-link a { color: #fff; font-weight: 600; }
+  .au-stack { display: grid; gap: 1.1rem; margin-top: 1.5rem; }
+  .au-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .au-check { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--au-muted); cursor: pointer; }
+  .au-check input { width: 16px; height: 16px; accent-color: var(--au-accent); }
+  .au-submit--block { width: 100%; }
+  .au-divider { display: flex; align-items: center; gap: 0.8rem; margin: 1.4rem 0; font-size: 0.82rem; color: var(--au-muted); }
+  .au-divider::before, .au-divider::after { content: ""; flex: 1; height: 1px; background: var(--au-line); }
+  .au-google {
+    display: flex; align-items: center; justify-content: center; gap: 0.7rem; width: 100%;
+    padding: 0.75rem 1rem; border: 1.5px solid var(--au-line); border-radius: 11px;
+    background: var(--au-surface); color: var(--au-ink); font-weight: 600; font-size: 0.95rem;
+    text-decoration: none; transition: border-color 0.15s, background 0.15s;
+  }
+  .au-google:hover { border-color: var(--au-accent); background: var(--au-accent-soft); }
+  .au-google:focus-visible { outline: 3px solid var(--au-accent-soft); outline-offset: 2px; }
+  @media (max-width: 900px) {
+    .au-shell--login { grid-template-columns: 1fr; }
+    .au-checks, .au-rail-link { display: none; }
+  }
+</style>

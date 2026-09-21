@@ -1,0 +1,11 @@
+enrollment,student_status,q_option,total,correct,wrong,skip,percentage,submitted_time,result_status
+MCA20263001,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263002,enrolled,"0,2,0,0,2,3,2,1,0,0,0",11,3,2,6,29.41,2026-09-21T14:37:24.288147+00:00,fail
+MCA20263003,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263004,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263005,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263006,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263007,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263008,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263009,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,
+MCA20263010,not_enrolled,"q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11",,,,,,,

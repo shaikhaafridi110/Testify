@@ -58,6 +58,51 @@ def build_q_option(n_questions):
         return ""
     return ",".join(f"q{i}" for i in range(1, int(n_questions) + 1))
 
+def fill_default_q_option(exam):
+    """
+    Fills/updates default q_option entries for an exam's result CSV.
+    - For students who already submitted (result_status is set), leave their row unchanged.
+    - For students who have NOT submitted, keep q_option synced with the exam's total question count.
+    """
+    try:
+        result_file = get_result_file(exam)
+    except (ValueError, ExamResultFile.DoesNotExist):
+        return
+
+    n = exam.questions.count()
+    if not n:
+        return
+
+    df = load_result_df(result_file)
+    default_opt = build_q_option(n)
+    changed = False
+
+    for idx in df.index:
+        res_status = df.at[idx, "result_status"]
+        is_submitted = pd.notna(res_status) and str(res_status).strip() not in ("", "nan", "None")
+
+        val = df.at[idx, "q_option"]
+        s_val = str(val).strip() if pd.notna(val) else ""
+
+        if is_submitted:
+            if s_val in ("", "nan", "None"):
+                tot = df.at[idx, "total"]
+                if pd.notna(tot) and str(tot).strip() not in ("", "nan", "None"):
+                    try:
+                        df.at[idx, "q_option"] = build_q_option(int(float(tot)))
+                    except (ValueError, TypeError):
+                        df.at[idx, "q_option"] = default_opt
+                else:
+                    df.at[idx, "q_option"] = default_opt
+                changed = True
+        else:
+            cur_count = parse_q_option_count(s_val)
+            if s_val in ("", "nan", "None") or (cur_count is not None and cur_count < n):
+                df.at[idx, "q_option"] = default_opt
+                changed = True
+
+    if changed:
+        save_result_df(result_file, df)
 
 def parse_q_option_count(q_option_value):
     """'q1,q2,q3,q4,q5' -> 5. Blank/NaN -> None (use all exam questions)."""
@@ -87,17 +132,6 @@ def _backup_full_path(result_file):
     return os.path.join(settings.MEDIA_ROOT, "backup", "results", result_file.file_name)
 
 
-def load_result_df(result_file):
-    """
-    dtype="object" (NOT dtype=str) forces every column to stay untyped,
-    even when a column (submitted_time, q_option, result_status, etc.) is
-    entirely empty right after generation — avoiding pandas inferring an
-    all-empty column as float64 and rejecting a later string assignment.
-    dtype=str maps to pandas' newer StringDtype on some versions, which is
-    stricter and rejects plain ints (e.g. assigning `total = 5`); "object"
-    is the classic loose dtype and accepts any Python value.
-    """
-    return pd.read_csv(_full_path(result_file), dtype="object")
 
 
 def save_result_df(result_file, df):
@@ -146,11 +180,13 @@ def generate_result_csv(exam):
         return existing
 
     roster = read_class_roster(class_obj)
+    n = exam.questions.count()
+    default_q_option = build_q_option(n) if n else ""
 
     result_df = pd.DataFrame({
         "enrollment": roster["enrollment"],
         "student_status": "not_enrolled",
-        "q_option": "",
+        "q_option": default_q_option,
         "total": None,
         "correct": None,
         "wrong": None,
@@ -212,13 +248,27 @@ def set_enrolled(exam, enrollment_no):
     if not mask.any():
         raise ValueError("Enrollment not found in this exam's roster")
 
+    changed = False
     if df.loc[mask, "student_status"].iloc[0] == "not_enrolled":
         df.loc[mask, "student_status"] = "enrolled"
+        changed = True
+
+    cur_q_opt = df.loc[mask, "q_option"].iloc[0]
+    s_cur = str(cur_q_opt).strip() if pd.notna(cur_q_opt) else ""
+    cur_count = parse_q_option_count(s_cur)
+    n = exam.questions.count()
+    if s_cur in ("", "nan", "None") or (cur_count is not None and cur_count < n):
+        if n:
+            df.loc[mask, "q_option"] = build_q_option(n)
+            changed = True
+
+    if changed:
         save_result_df(result_file, df)
     return True
 
 
-def record_submission(exam, enrollment_no, total, correct, wrong, skip, percentage, passed):
+def record_submission(exam, enrollment_no, total, correct, wrong, skip, percentage, passed,
+                      q_option_answers=None):
     """Rewrite one student's row after they submit the MCQ exam."""
     result_file = get_result_file(exam)
     df = load_result_df(result_file)
@@ -235,8 +285,50 @@ def record_submission(exam, enrollment_no, total, correct, wrong, skip, percenta
     df.loc[mask, "submitted_time"] = timezone.now().isoformat()
     df.loc[mask, "result_status"] = "pass" if passed else "fail"
 
+    # Store actual selected option numbers (e.g. "2,3,1,4,0,2,...") for analysis
+    if q_option_answers:
+        df.loc[mask, "q_option"] = q_option_answers
+    else:
+        cur_q_opt = df.loc[mask, "q_option"].iloc[0]
+        s_cur = str(cur_q_opt).strip() if pd.notna(cur_q_opt) else ""
+        if s_cur in ("", "nan", "None"):
+            q_count = total if total else exam.questions.count()
+            if q_count:
+                df.loc[mask, "q_option"] = build_q_option(q_count)
+
     save_result_df(result_file, df)
 
     result_file.status = "processed"
     result_file.save(update_fields=["status"])
     return True
+
+def load_result_df(result_file):
+    path = _full_path(result_file)
+    if os.path.exists(path):
+        return pd.read_csv(path, dtype="object")
+
+    backup = _backup_full_path(result_file)
+    if os.path.exists(backup):
+        df = pd.read_csv(backup, dtype="object")
+    else:
+        # nothing left to restore: start from the current roster
+        df = _build_blank_df(result_file.exam).astype("object")
+    save_result_df(result_file, df)
+    return df
+
+def _build_blank_df(exam):
+    roster = read_class_roster(exam.class_obj)
+    n = exam.questions.count()
+    default_q_option = build_q_option(n) if n else ""
+    return pd.DataFrame({
+        "enrollment": roster["enrollment"],
+        "student_status": "not_enrolled",
+        "q_option": default_q_option,
+        "total": None,
+        "correct": None,
+        "wrong": None,
+        "skip": None,
+        "percentage": None,
+        "submitted_time": None,
+        "result_status": None,
+    })[RESULT_COLUMNS]

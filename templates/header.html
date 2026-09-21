@@ -18,6 +18,16 @@
       </button>
 
       {% if request.user.is_authenticated %}
+        <a href="{% url 'notifications' %}" class="theme-toggle notif-bell-btn" id="notif-bell-btn" aria-label="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+          <span class="notif-bell-dot" id="notif-bell-dot">0</span>
+        </a>
+      {% endif %}
+
+      {% if request.user.is_authenticated %}
         {% if request.user.role == 'admin' %}
           <a href="{% url 'admin_dashboard' %}" class="btn btn-primary">Dashboard</a>
         {% endif %}
@@ -189,33 +199,88 @@
 
   .account-logout { color: #d64545; }
   .account-logout:hover { background: rgba(214,69,69,.08); }
+
+  /* ---- notification bell ---- */
+  .notif-bell-btn {
+    position: relative;
+    text-decoration: none;
+  }
+
+  .notif-bell-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: #e6392f;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    display: none;
+  }
+
+  .notif-bell-dot.show {
+    display: block;
+  }
 </style>
 
 <script>
   (function () {
     var menu = document.querySelector('[data-account-menu]');
-    if (!menu) return;
-    var trigger = menu.querySelector('[data-account-trigger]');
-    var dropdown = menu.querySelector('[data-account-dropdown]');
+    if (menu) {
+      var trigger = menu.querySelector('[data-account-trigger]');
+      var dropdown = menu.querySelector('[data-account-dropdown]');
 
-    trigger.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var isOpen = menu.classList.toggle('is-open');
-      trigger.setAttribute('aria-expanded', isOpen);
-    });
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var isOpen = menu.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded', isOpen);
+      });
 
-    document.addEventListener('click', function (e) {
-      if (!menu.contains(e.target)) {
-        menu.classList.remove('is-open');
-        trigger.setAttribute('aria-expanded', 'false');
-      }
-    });
+      document.addEventListener('click', function (e) {
+        if (!menu.contains(e.target)) {
+          menu.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+        }
+      });
 
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        menu.classList.remove('is-open');
-        trigger.setAttribute('aria-expanded', 'false');
-      }
-    });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          menu.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
   })();
+
+  {% if request.user.is_authenticated %}
+  (function () {
+    var dot = document.getElementById('notif-bell-dot');
+    if (!dot) return;
+
+    function refreshCount() {
+      fetch("{% url 'notification_unread_count' %}", {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          var count = data.unread_count || 0;
+          if (count > 0) {
+            dot.textContent = count > 99 ? '99+' : count;
+            dot.classList.add('show');
+          } else {
+            dot.classList.remove('show');
+          }
+        })
+        .catch(function () { /* fail silently */ });
+    }
+
+    refreshCount();
+    setInterval(refreshCount, 30000);
+  })();
+  {% endif %}
 </script>
